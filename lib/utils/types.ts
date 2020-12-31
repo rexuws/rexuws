@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponse } from 'uWebSockets.js';
+import { HttpRequest, HttpResponse, RecognizedString } from 'uWebSockets.js';
 import { ReadStream } from 'fs';
 
 export interface IIndexable {
@@ -492,6 +492,8 @@ export interface IResponse {
    *     res.type('png');
    */
   type(type: string): this;
+
+  end(body: RecognizedString): void;
 
   originalRes: HttpResponse;
 }

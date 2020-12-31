@@ -12,7 +12,7 @@ import {
   TMiddlewareErrorHandler,
   NextFunction,
 } from './Middleware';
-import { HttpMethod } from './utils/type';
+import { HttpMethod } from './utils/types';
 import { getParamNames, toHtml, readBody, hasAsync as checkHasAsync, notFoundHtml, extractParamsPath } from './utils/utils';
 import {
   bodyParser,
@@ -307,9 +307,9 @@ export default class App {
             getRemoteAddressAsText: res[GET_REMOTE_ADDR],
           };
 
-          res[FROM_REQ] = {
-            get: req.get,
-          };
+          // res[FROM_REQ] = {
+          //   get: req.get,
+          // };
 
           readBody(res.originalRes, (raw) => {
             req.raw = raw;

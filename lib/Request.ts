@@ -1,11 +1,12 @@
-import { HttpRequest } from "uWebSockets.js";
-import accepts from "accepts";
-import typeis from "type-is";
-import {
-  IRequest,
-  HttpMethod,
-  TResponseExposedMethods,
-} from "./utils/type";
+/* eslint-disable prefer-spread */
+/* eslint-disable prefer-rest-params */
+/* eslint-disable prefer-destructuring */
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+import { HttpRequest } from 'uWebSockets.js';
+import accepts from 'accepts';
+import typeis from 'type-is';
+import * as qs from 'querystring';
+import { IRequest, HttpMethod, TResponseExposedMethods } from './utils/types';
 
 import {
   GET_HEADER,
@@ -15,9 +16,7 @@ import {
   GET_URL,
   FOR_EACH,
   FROM_RES,
-} from "./utils/symbol";
-
-import * as qs from "querystring";
+} from './utils/symbol';
 
 const textDecoder = new TextDecoder();
 
@@ -105,6 +104,7 @@ export default class Request implements IRequest {
   private [FOR_EACH]: any;
 
   private parametersMap?: ParametersMap[];
+
   /**
    * Return an array of Accepted media types
    * ordered from highest quality to lowest.
@@ -149,7 +149,7 @@ export default class Request implements IRequest {
       this.parametersMap = paramsMap;
 
       if (forceInit) {
-        if (typeof forceInit === "object") {
+        if (typeof forceInit === 'object') {
           const keys = Object.keys(forceInit);
 
           for (let i = 0; i < keys.length; i++) {
@@ -161,7 +161,7 @@ export default class Request implements IRequest {
           }
         }
 
-        if (typeof forceInit === "boolean") {
+        if (typeof forceInit === 'boolean') {
           this.headers;
           this.url;
           this.query;
@@ -256,23 +256,24 @@ export default class Request implements IRequest {
   }
 
   get ips(): string[] {
-    const fwd = this.get("X-Forwarded-For");
+    const fwd = this.get('X-Forwarded-For');
     return fwd ? [fwd, this.ip] : [this.ip];
   }
 
   get hostname(): string | undefined {
-    let host = this.get("X-Forwarded-Host");
+    let host = this.get('X-Forwarded-Host');
 
     if (!host) {
-      this.get("Host");
-    } else if (host.indexOf(",") === -1) {
-      host = host.substring(0, host.indexOf(",")).trimRight();
+      this.get('Host');
+    } else if (host.indexOf(',') === -1) {
+      host = host.substring(0, host.indexOf(',')).trimRight();
     }
 
     if (!host) return;
 
-    const index = host[0] === "[" ? host.indexOf("]") + 1 : 0;
+    const index = host[0] === '[' ? host.indexOf(']') + 1 : 0;
 
+    // eslint-disable-next-line consistent-return
     return index !== -1 ? host.substring(0, index) : host;
   }
 
@@ -280,22 +281,22 @@ export default class Request implements IRequest {
     if (this._hasCookieParser) {
       if (this._cookies) return this._cookies;
 
-      //Parse cookie
-      const cookie = this.headers.cookie;
+      // Parse cookie
+      const { cookie } = this.headers;
 
       if (!cookie) {
         this._cookies = {};
         return {};
       }
 
-      let result: {
+      const result: {
         [key: string]: any;
       } = {};
 
-      const parts = cookie.split(";");
+      const parts = cookie.split(';');
 
       for (let i = 0; i < parts.length; i++) {
-        const val = parts[i].trim().split("=") as string[];
+        const val = parts[i].trim().split('=') as string[];
 
         if (val.length === 2) {
           result[val[0]] = val[1];
@@ -310,7 +311,7 @@ export default class Request implements IRequest {
       return this._headers.cookie;
     }
 
-    return this[GET_HEADER]("cookie");
+    return this[GET_HEADER]('cookie');
   }
 
   public accepts(...type: string[]): string | string[] | false {
@@ -333,24 +334,26 @@ export default class Request implements IRequest {
     return accept.languages.apply(accept, arguments as any);
   }
 
+  // eslint-disable-next-line class-methods-use-this
   public get(name: string): string | undefined {
-    if (!name) {
-      throw new TypeError("name argument is required to req.get");
-    }
+    return '';
+    // if (!name) {
+    //   throw new TypeError('name argument is required to req.get');
+    // }
 
-    if (typeof name !== "string") {
-      throw new TypeError("name must be a string to req.get");
-    }
+    // if (typeof name !== 'string') {
+    //   throw new TypeError('name must be a string to req.get');
+    // }
 
-    const lc = name.toLowerCase();
+    // const lc = name.toLowerCase();
 
-    switch (lc) {
-      case "referer":
-      case "referrer":
-        return this[GET_HEADER]("referer") || this[GET_HEADER]("referrer");
-      default:
-        return this[GET_HEADER](lc);
-    }
+    // switch (lc) {
+    //   case 'referer':
+    //   case 'referrer':
+    //     return this[GET_HEADER]('referer') || this[GET_HEADER]('referrer');
+    //   default:
+    //     return this[GET_HEADER](lc);
+    // }
   }
 
   public header: (name: string) => string | undefined;
@@ -361,7 +364,7 @@ export default class Request implements IRequest {
     // support flattened arguments
     if (!Array.isArray(type)) {
       arr = new Array(arguments.length);
-      for (var i = 0; i < arr.length; i++) {
+      for (let i = 0; i < arr.length; i++) {
         arr[i] = arguments[i];
       }
     }

@@ -1,4 +1,4 @@
-import { IRequest, IResponse } from './utils/type';
+import { IRequest, IResponse } from './utils/types';
 
 export type TMiddleware = (
   req: IRequest,
