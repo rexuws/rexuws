@@ -1,0 +1,62 @@
+{
+  "name": "rexuws",
+  "version": "0.0.1",
+  "description": "An express-like framework built on top of uWebsocket.js aims at simple codebase and high performance",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/vmtrandev/rexuws.git"
+  },
+  "keywords": [
+    "nodejs",
+    "uwebsocketjs",
+    "uws",
+    "express",
+    "framework",
+    "js",
+    "typescript"
+  ],
+  "author": "VMTran",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vmtrandev/rexuws/issues"
+  },
+  "homepage": "https://github.com/vmtrandev/rexuws#readme",
+  "devDependencies": {
+    "@types/content-disposition": "^0.5.3",
+    "@types/content-type": "^1.1.3",
+    "@types/cookie": "^0.4.0",
+    "@types/mime-types": "^2.1.0",
+    "@types/mmmagic": "^0.4.30",
+    "@types/qs": "^6.9.5",
+    "@types/statuses": "^2.0.0",
+    "@types/node": "^14.14.17",
+    "@typescript-eslint/eslint-plugin": "^4.11.1",
+    "@typescript-eslint/parser": "^4.11.1",
+    "eslint": "^7.2.0",
+    "eslint-config-airbnb": "^18.2.1",
+    "eslint-config-airbnb-typescript": "^12.0.0",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-prettier": "^3.3.0",
+    "eslint-plugin-react": "^7.22.0",
+    "eslint-plugin-react-hooks": "^4.0.0",
+    "prettier": "^2.2.1",
+    "typescript": "^4.1.3"
+  },
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "content-disposition": "^0.5.3",
+    "content-type": "^1.0.4",
+    "cookie": "^0.4.1",
+    "mime-types": "^2.1.27",
+    "mmmagic": "^0.5.3",
+    "qs": "^6.9.4",
+    "statuses": "^2.0.0",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.12.0"
+  }
+}
