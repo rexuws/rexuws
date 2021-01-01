@@ -336,24 +336,23 @@ export default class Request implements IRequest {
 
   // eslint-disable-next-line class-methods-use-this
   public get(name: string): string | undefined {
-    return '';
-    // if (!name) {
-    //   throw new TypeError('name argument is required to req.get');
-    // }
+    if (!name) {
+      throw new TypeError('name argument is required to req.get');
+    }
 
-    // if (typeof name !== 'string') {
-    //   throw new TypeError('name must be a string to req.get');
-    // }
+    if (typeof name !== 'string') {
+      throw new TypeError('name must be a string to req.get');
+    }
 
-    // const lc = name.toLowerCase();
+    const lc = name.toLowerCase();
 
-    // switch (lc) {
-    //   case 'referer':
-    //   case 'referrer':
-    //     return this[GET_HEADER]('referer') || this[GET_HEADER]('referrer');
-    //   default:
-    //     return this[GET_HEADER](lc);
-    // }
+    switch (lc) {
+      case 'referer':
+      case 'referrer':
+        return this.headers.referer || this.headers.referrer;
+      default:
+        return this.headers[lc];
+    }
   }
 
   public header: (name: string) => string | undefined;
