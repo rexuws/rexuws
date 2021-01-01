@@ -1,7 +1,7 @@
 import * as uWS from 'uWebSockets.js';
 import * as qs from 'qs';
 import { NextFunction } from '../Middleware';
-import { HttpMethod, IRequest, IResponse } from './type';
+import { HttpMethod, IRequest, IResponse } from './types';
 
 export interface IMultipartParserOptions {
   /**

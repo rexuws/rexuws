@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponse } from 'uWebSockets.js';
+import { HttpRequest, HttpResponse, RecognizedString } from 'uWebSockets.js';
 import { ReadStream } from 'fs';
 
 export interface IIndexable {
@@ -493,6 +493,8 @@ export interface IResponse {
    */
   type(type: string): this;
 
+  end(body: RecognizedString): void;
+
   originalRes: HttpResponse;
 }
 
@@ -504,7 +506,7 @@ export type TResponseExposedMethods = Pick<
 >;
 
 export type TApplicationExposedMethods = {
-  render(...args: any): any;
+  render?(...args: any): any;
 };
 
 // req.secret
