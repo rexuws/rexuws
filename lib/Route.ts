@@ -1,4 +1,4 @@
-import { HttpMethod } from './utils/type';
+import { HttpMethod } from './utils/types';
 import { TMiddleware } from './Middleware';
 import { PREFIXED_ROUTE } from './utils/symbol';
 

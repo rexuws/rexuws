@@ -14,7 +14,7 @@ import { serialize } from 'cookie';
 import contentDisposition from 'content-disposition';
 
 import { basename } from 'path';
-import { colorConsole, toArrayBuffer } from './utils/utils';
+import { colorConsole, toArrayBuffer, toHtml } from './utils/utils';
 
 import {
   HAS_ASYNC,
@@ -28,7 +28,6 @@ import {
   GET_PROXIED_ADDR,
   GET_REMOTE_ADDR,
   ON_ABORTED,
-  ON_DATA,
   ON_WRITABLE,
   CORK,
   FROM_APP,
@@ -43,7 +42,7 @@ import {
   IResponse,
   CookieOptions,
   TApplicationExposedMethods,
-} from './utils/type';
+} from './utils/types';
 import { NextFunction } from './Middleware';
 
 export interface IResponseOptions {
@@ -99,10 +98,6 @@ export default class Response implements IResponse {
   private [ON_WRITABLE]: (handler: (offset: number) => boolean) => HttpResponse;
 
   private [ON_ABORTED]: (handler: () => void) => HttpResponse;
-
-  private [ON_DATA]: (
-    handler: (chunk: ArrayBuffer, isLast: boolean) => void
-  ) => HttpResponse;
 
   private [GET_REMOTE_ADDR]: () => ArrayBuffer;
 
@@ -163,7 +158,6 @@ export default class Response implements IResponse {
     this[GET_REMOTE_ADDR] = this.originalRes.getRemoteAddressAsText.bind(res);
     this[GET_WRITE_OFFSET] = this.originalRes.getWriteOffset.bind(res);
     this[ON_ABORTED] = this.originalRes.onAborted.bind(res);
-    this[ON_DATA] = this.originalRes.onData.bind(res);
     this[ON_WRITABLE] = this.originalRes.onWritable.bind(res);
     this[CORK] = this.originalRes.cork.bind(res);
 
@@ -616,29 +610,48 @@ export default class Response implements IResponse {
       opts = {};
     }
 
-    opts._local = this.locals;
-
     if (!cb) {
-      cb = (err: any, str: any) => {
+      // eslint-disable-next-line consistent-return
+      cb = (err: Error, html: string): void => {
         if (err) {
-          this.debug.trace(err);
-          this[END]();
+          if (err instanceof ReferenceError) {
+            this.status(404);
+            return this.send(
+              toHtml(
+                `${err.stack
+                  ?.toString()
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')}`
+              )
+            );
+          }
+          this.status(500);
+          return this.json(err);
         }
-        this.send(str);
+
+        this.set('Content-Type', CONTENT_TYPE.HTML);
+        this.end(html);
       };
     }
 
-    this[FROM_APP].render(view, opts, cb);
+    const { render } = this[FROM_APP];
+
+    if (!render) {
+      this[WRITE_STATUS]('500');
+      this[END]('Missing view render method');
+      return;
+    }
+
+    render(view, opts, cb);
   }
 
-  public end(body?: string | Buffer, hasAsync?: boolean) {
+  public end(body?: RecognizedString, hasAsync?: boolean) {
     if (hasAsync || this[HAS_ASYNC]) {
-      this[CORK](() => {
-        if (!this.originalRes.aborted) {
+      if (!this.originalRes.aborted)
+        this[CORK](() => {
           this.setHeaderAndStatusByNativeMethod();
           this[END](body);
-        }
-      });
+        });
       return;
     }
 
