@@ -11,6 +11,13 @@ export interface ILoggerDeprecate {
   deprecate(message?: any, ...optionalParams: any[]): void;
 }
 
+export interface ILoggerPrint {
+  /**
+   * Force print regardless of settings
+   */
+  print?(message?: any, ...optionalParams: any[]): void;
+}
+
 export interface ILoggerOptions {
   /**
    * Set logger level on spefic methods
@@ -29,7 +36,10 @@ export interface ILoggerOptions {
 
 export interface ILoggerProvider extends Pick<Console, TLoggerLevelConsole> {}
 
-export interface ILogger extends ILoggerProvider, ILoggerDeprecate {}
+export interface ILogger
+  extends ILoggerProvider,
+    ILoggerDeprecate,
+    ILoggerPrint {}
 
 export default class Logger implements ILogger {
   private _prefix: string;
@@ -49,6 +59,8 @@ export default class Logger implements ILogger {
   public trace: (message?: any, ...optionalParams: any[]) => void;
 
   public deprecate: (message?: any, ...optionalParams: any[]) => void;
+
+  public print?: (message?: any, ...optionalParams: any[]) => void;
 
   constructor(opts?: ILoggerOptions, logger?: ILoggerProvider) {
     if (!opts || typeof opts !== 'object') {
@@ -91,6 +103,8 @@ export default class Logger implements ILogger {
     this.deprecate = this.hasLogger('deprecate')
       ? this._logger.warn.bind(this._logger, this._prefix, '[DEPRECATED]')
       : this.off;
+
+    this.print = this._logger.log.bind(this._logger, this._prefix);
   }
 
   // eslint-disable-next-line class-methods-use-this
