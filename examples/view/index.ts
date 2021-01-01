@@ -2,7 +2,11 @@ import path from 'path';
 import ejs from 'ejs';
 import rex from '../../index';
 
-const app = rex();
+const app = rex({
+  logging: {
+    level: false,
+  },
+});
 
 app.setView(path.join(__dirname, './views'), {
   compileMethod: ejs.compile,
@@ -18,3 +22,5 @@ app.get('/home', (req, res) => {
     today: new Date(),
   });
 });
+
+app.listen('0.0.0.0', 3000);
