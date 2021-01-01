@@ -3,6 +3,9 @@ import {
   SSLApp as uWSSSl,
   TemplatedApp,
   AppOptions,
+  RecognizedString,
+  us_listen_socket,
+  ListenOptions,
 } from 'uWebSockets.js';
 import pathMethod from 'path';
 import fs from 'fs';
@@ -235,17 +238,42 @@ export default class App {
     return this;
   }
 
-  public listen(): void {
+  listen(
+    host: RecognizedString,
+    port: number,
+    cb?: (listenSocket: us_listen_socket) => void
+  ): void;
+  listen(port: number, cb?: (listenSocket: any) => void): void;
+  listen(
+    port: number,
+    options: ListenOptions,
+    cb?: (listenSocket: us_listen_socket | false) => void
+  ): void;
+  public listen(...args: any[]): void {
     this.initUWS();
     this.initRoutes();
 
+    const argsCt = [...args];
+    const givenLength = argsCt.length;
     if (!this.app) {
       throw new Error("Couldn't find uWS instance");
     }
 
-    this.app.listen(3040, () => {
-      this.logger.info('on 3040');
-    });
+    if (
+      givenLength < 3 &&
+      argsCt[givenLength - 1].constructor.name !== 'Function'
+    ) {
+      argsCt[givenLength] = () => {
+        this.logger.print!(
+          new Date().toLocaleString(),
+          'Listening on',
+          args[0],
+          givenLength === 2 ? argsCt[1] : '',
+          '...'
+        );
+      };
+    }
+    (this.app as any).listen(...argsCt);
   }
 
   private initUWS(): void {
@@ -364,7 +392,6 @@ export default class App {
           res[FROM_REQ] = {
             get: req.get,
           };
-
           res[FROM_APP] = {
             render: this.render.bind(this),
           };
