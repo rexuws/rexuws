@@ -9,11 +9,6 @@ app.setView(path.join(__dirname, './views'), {
   extName: 'ejs',
 });
 
-app.setView(path.join(__dirname, './views'), {
-  compileMethod: ejs.compile,
-  extName: 'ejs',
-});
-
 app.get('/home', (req, res) => {
   res.render('Home', {
     user: {
