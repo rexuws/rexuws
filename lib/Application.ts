@@ -340,7 +340,6 @@ export default class App {
             if (useDefaultParser.bodyParser)
               mergedMiddlewares.unshift(bodyParser);
           } else {
-            console.log(k, 'should get here');
             mergedMiddlewares.unshift(multipartParser);
             mergedMiddlewares.unshift(bodyParser);
           }
