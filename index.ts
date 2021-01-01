@@ -31,7 +31,7 @@ const defaultLoggerSetting: ILoggerOptions = {
  * @param id Application name or default id number (0, 1, 2, ...)
  */
 export const getAppInstance = (
-  id?: string | number,
+  id?: string | number
 ): Application | undefined => {
   if (id) return reXInstances.get(id)?.app;
 
@@ -72,7 +72,7 @@ export default (options?: TReXAppOptions): Application => {
       ...defaultLoggerSetting,
       ...logging,
     },
-    colorConsole,
+    colorConsole
   );
 
   const app = new Application({
@@ -93,7 +93,7 @@ export const Router = () => new AppRouter();
 export const serveStatic = (
   path: string,
   options?: IServeStaticOptions,
-  appName?: string | number,
+  appName?: string | number
 ): StaticServing => {
   const logger =
     getLoggerInstance(appName) ||
@@ -101,7 +101,7 @@ export const serveStatic = (
       {
         prefix: '[STATIC SERVING]',
       },
-      colorConsole,
+      colorConsole
     );
 
   return new StaticServing(path, logger, options);
