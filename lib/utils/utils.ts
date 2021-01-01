@@ -58,33 +58,38 @@ export const notFoundHtml = (method: string, path: string): string =>
 export const extractParamsPath = (
   path: string
 ): { parametersMap: ParametersMap[]; path: string } =>
-  path.split('/').reduce(
-    (acc, cur) => {
-      if (cur.indexOf(':') !== -1) {
-        const paramPart = cur.split(':');
-
-        acc.parametersMap.push({
-          param: paramPart[paramPart.length - 1],
-          index: acc.parametersMap.length,
-        });
-
-        acc.path += `/:${paramPart[paramPart.length - 1]}`;
-
-        return acc;
+  path === '/'
+    ? {
+        path: '/',
+        parametersMap: [],
       }
+    : path.split('/').reduce(
+        (acc, cur) => {
+          if (cur.indexOf(':') !== -1) {
+            const paramPart = cur.split(':');
 
-      if (cur) acc.path += `/${cur}`;
+            acc.parametersMap.push({
+              param: paramPart[paramPart.length - 1],
+              index: acc.parametersMap.length,
+            });
 
-      return acc;
-    },
-    {
-      parametersMap: [],
-      path: '',
-    } as {
-      parametersMap: ParametersMap[];
-      path: string;
-    }
-  );
+            acc.path += `/:${paramPart[paramPart.length - 1]}`;
+
+            return acc;
+          }
+
+          if (cur) acc.path += `/${cur}`;
+
+          return acc;
+        },
+        {
+          parametersMap: [],
+          path: '',
+        } as {
+          parametersMap: ParametersMap[];
+          path: string;
+        }
+      );
 
 export const readBody = (res: HttpResponse, cb: (raw: Buffer) => void) => {
   let buffer: Buffer;
