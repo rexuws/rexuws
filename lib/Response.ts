@@ -14,7 +14,7 @@ import { serialize } from 'cookie';
 import contentDisposition from 'content-disposition';
 
 import { basename } from 'path';
-import { colorConsole, toArrayBuffer } from './utils/utils';
+import { colorConsole, toArrayBuffer, toHtml } from './utils/utils';
 
 import {
   HAS_ASYNC,
@@ -610,19 +610,39 @@ export default class Response implements IResponse {
       opts = {};
     }
 
-    opts._local = this.locals;
-
     if (!cb) {
-      cb = (err: any, str: any) => {
+      // eslint-disable-next-line consistent-return
+      cb = (err: Error, html: string): void => {
         if (err) {
-          this.debug.trace(err);
-          this[END]();
+          if (err instanceof ReferenceError) {
+            this.status(404);
+            return this.send(
+              toHtml(
+                `${err.stack
+                  ?.toString()
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')}`
+              )
+            );
+          }
+          this.status(500);
+          return this.json(err);
         }
-        this.send(str);
+
+        this.set('Content-Type', CONTENT_TYPE.HTML);
+        this.end(html);
       };
     }
 
-    this[FROM_APP].render(view, opts, cb);
+    const { render } = this[FROM_APP];
+
+    if (!render) {
+      this[WRITE_STATUS]('500');
+      this[END]('Missing view render method');
+      return;
+    }
+
+    render(view, opts, cb);
   }
 
   public end(body?: RecognizedString, hasAsync?: boolean) {

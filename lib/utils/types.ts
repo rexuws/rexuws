@@ -506,7 +506,7 @@ export type TResponseExposedMethods = Pick<
 >;
 
 export type TApplicationExposedMethods = {
-  render(...args: any): any;
+  render?(...args: any): any;
 };
 
 // req.secret

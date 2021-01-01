@@ -4,6 +4,8 @@ import {
   TemplatedApp,
   AppOptions,
 } from 'uWebSockets.js';
+import pathMethod from 'path';
+import fs from 'fs';
 import Request, { ParametersMap } from './Request';
 import Response from './Response';
 import Router, { IPrefixedRoutes, IPrefixedRoutesSettings } from './Route';
@@ -13,7 +15,14 @@ import {
   NextFunction,
 } from './Middleware';
 import { HttpMethod } from './utils/types';
-import { getParamNames, toHtml, readBody, hasAsync as checkHasAsync, notFoundHtml, extractParamsPath } from './utils/utils';
+import {
+  getParamNames,
+  toHtml,
+  readBody,
+  hasAsync as checkHasAsync,
+  notFoundHtml,
+  extractParamsPath,
+} from './utils/utils';
 import {
   bodyParser,
   multipartParser,
@@ -26,6 +35,7 @@ import {
   GET_REMOTE_ADDR,
   GET_PROXIED_ADDR,
   FROM_REQ,
+  FROM_APP,
 } from './utils/symbol';
 
 export interface CoreApplicationOptions {
@@ -89,6 +99,18 @@ export default class App {
       hasAsync?: boolean;
     }
   > = new Map();
+
+  private renderMethod?: ((...args: any) => string) | null = null;
+
+  private compileMethod:
+    | ((...args: any) => (...arg: any) => string)
+    | null = null;
+
+  private compiledViewCaches: Record<string, (...args: any) => string> = {};
+
+  private viewDir?: string;
+
+  private extName?: string;
 
   constructor(options: CoreApplicationOptions) {
     this.appOptions = options || {
@@ -222,7 +244,7 @@ export default class App {
     }
 
     this.app.listen(3040, () => {
-      console.log('on 3040');
+      this.logger.info('on 3040');
     });
   }
 
@@ -343,6 +365,10 @@ export default class App {
             get: req.get,
           };
 
+          res[FROM_APP] = {
+            render: this.render.bind(this),
+          };
+
           mergedMiddlewares[0](
             req,
             res,
@@ -389,5 +415,121 @@ export default class App {
         this.nextHandler(nextIdx + 1, req, res, middlewares)
       );
     };
+  }
+
+  private render(
+    name: string,
+    options: Record<string, any> | null,
+    callback: (err: Error | null, html?: string) => void
+  ): any {
+    if (!this.viewDir) {
+      this.logger.warn(
+        'No default view directory or renderMethod or compileMethod was found. Please configurate via app.setView(path, engineOptions)'
+      );
+      return callback(
+        new Error("Something went wrong with the server's configurations")
+      );
+    }
+
+    const viewFile = pathMethod.join(this.viewDir, name + this.extName);
+
+    if (this.compileMethod) {
+      const cacheView = this.compiledViewCaches[name];
+      if (cacheView) {
+        try {
+          const html = cacheView(options);
+          return callback(null, html);
+        } catch (err) {
+          return callback(err);
+        }
+      }
+
+      try {
+        // Read file from disk
+        const fileContent = fs.readFileSync(viewFile, 'utf-8');
+        const compiled = this.compileMethod(fileContent, options);
+        this.compiledViewCaches[name] = compiled;
+        return callback(null, compiled(options));
+      } catch (err) {
+        return callback(err);
+      }
+    }
+
+    // Handle renderMethod()
+    if (this.renderMethod) {
+      return this.renderMethod(viewFile, options, callback);
+    }
+
+    this.logger.warn(
+      'No default renderMethod or compileMethod was found. Please set up via app.setView(path, engineOptions)'
+    );
+    return callback(
+      new Error("Something went wrong with the server's configurations")
+    );
+  }
+
+  /**
+   * Set View folder and render method from engine
+   * @param viewPath
+   * @param renderMethod
+   */
+  public setView(
+    viewPath: string,
+    engine: {
+      renderMethod: (...args: any) => any;
+      async?: boolean;
+      extName: string;
+    }
+  ): this;
+  public setView(
+    viewPath: string,
+    engine: {
+      compileMethod: (...args: any) => any;
+      extName: string;
+    }
+  ): this;
+  public setView(
+    viewPath: string,
+    engine: {
+      compileMethod?: (...args: any) => any;
+      renderMethod?: (...args: any) => any;
+      async?: boolean;
+      extName: string;
+    }
+  ): this {
+    if (typeof viewPath !== 'string')
+      throw new TypeError('path must be a string');
+
+    this.viewDir = viewPath;
+
+    if (typeof engine !== 'object') throw new TypeError('Missing engine');
+
+    const { renderMethod, compileMethod, extName } = engine;
+
+    if (!extName) {
+      throw new TypeError('extName must be a string');
+    }
+
+    this.extName = extName.startsWith('.') ? extName : `.${extName}`;
+
+    if (renderMethod) {
+      if (renderMethod.constructor.name !== 'Function')
+        throw new TypeError('renderMethod must be a function');
+
+      this.renderMethod = renderMethod;
+      return this;
+    }
+
+    if (compileMethod) {
+      if (compileMethod.constructor.name !== 'Function')
+        throw new TypeError('renderMethod must be a function');
+
+      this.compileMethod = compileMethod;
+      return this;
+    }
+
+    throw new TypeError(
+      'Neither renderMethod nor compileMethod has been given'
+    );
   }
 }
