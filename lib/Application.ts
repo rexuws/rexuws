@@ -100,6 +100,7 @@ export default class App {
       originPath: string;
       parametersMap: ParametersMap[];
       hasAsync?: boolean;
+      path: string;
     }
   > = new Map();
 
@@ -228,12 +229,13 @@ export default class App {
   ): this {
     const { path: cleanedPath, parametersMap } = extractParamsPath(path);
 
-    this.routeMethods.set(cleanedPath, {
+    this.routeMethods.set(method + cleanedPath, {
       method,
       middlewares,
       originPath: path,
       parametersMap,
       hasAsync: middlewares.some(this.checkHasAsync),
+      path,
     });
     return this;
   }
@@ -313,9 +315,9 @@ export default class App {
       (typeof useDefaultParser === 'object' && useDefaultParser.cookieParser);
 
     this.routeMethods.forEach((v, k) => {
-      const { method, middlewares, hasAsync, parametersMap } = v;
+      const { method, middlewares, hasAsync, parametersMap, path } = v;
 
-      if (!hasAnyMethodOnAll && method === HttpMethod.ANY && k === '/*') {
+      if (!hasAnyMethodOnAll && method === HttpMethod.ANY && path === '/*') {
         hasAnyMethodOnAll = true;
       }
 
@@ -338,11 +340,12 @@ export default class App {
             if (useDefaultParser.bodyParser)
               mergedMiddlewares.unshift(bodyParser);
           } else {
+            console.log(k, 'should get here');
             mergedMiddlewares.unshift(multipartParser);
             mergedMiddlewares.unshift(bodyParser);
           }
         }
-        this.app[method](k, (_res, _req) => {
+        this.app[method](path, (_res, _req) => {
           const req = new Request(_req, {
             paramsMap: parametersMap,
             // forceInit: true,
@@ -371,7 +374,7 @@ export default class App {
           });
         });
       } else {
-        this.app[method](k, (_res, _req) => {
+        this.app[method](path, (_res, _req) => {
           const res = new Response(
             _res,
             {
