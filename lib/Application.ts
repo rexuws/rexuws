@@ -392,7 +392,7 @@ export default class App {
           };
 
           res[FROM_REQ] = {
-            get: req.get,
+            get: req.get.bind(req),
           };
           res[FROM_APP] = {
             render: this.render.bind(this),
