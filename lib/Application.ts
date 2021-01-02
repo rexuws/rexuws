@@ -98,7 +98,7 @@ export default class App {
       method: HttpMethod;
       middlewares: TMiddleware[];
       originPath: string;
-      parametersMap: ParametersMap[];
+      parametersMap: ParametersMap;
       hasAsync?: boolean;
       path: string;
     }
@@ -227,16 +227,33 @@ export default class App {
     path: string,
     middlewares: TMiddleware[]
   ): this {
-    const { path: cleanedPath, parametersMap } = extractParamsPath(path);
+    const { path: cleanedPath, parametersMap, basePath } = extractParamsPath(
+      path.startsWith('/') ? path : `/${path}`
+    );
 
-    this.routeMethods.set(method + cleanedPath, {
+    const exist = this.routeMethods.get(method + basePath);
+    if (exist)
+      this.logger.warn(
+        `There's already a route handler for ${method.toUpperCase()} ${cleanedPath} (original path: ${
+          exist.originPath
+        }), the existed one will be overrided!`
+      );
+    this.routeMethods.set(method + basePath, {
       method,
       middlewares,
       originPath: path,
       parametersMap,
       hasAsync: middlewares.some(this.checkHasAsync),
-      path,
+      path: cleanedPath,
     });
+    this.logger.info(
+      'Map',
+      method.toUpperCase(),
+      path,
+      '=>',
+      method.toUpperCase(),
+      cleanedPath
+    );
     return this;
   }
 
@@ -346,7 +363,6 @@ export default class App {
         this.app[method](path, (_res, _req) => {
           const req = new Request(_req, {
             paramsMap: parametersMap,
-            // forceInit: true,
             forceInit: true,
             cookieParser: useDefaultCookieParser,
           });

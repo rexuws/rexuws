@@ -23,10 +23,7 @@ const textDecoder = new TextDecoder();
 /**
  * Map parameter's name to its index in url
  */
-export interface ParametersMap {
-  param: string;
-  index: number;
-}
+export type ParametersMap = string[];
 
 /**
  * Specify Request options such as: parameters map, cache req default value, etc,...
@@ -35,7 +32,7 @@ export interface IRequestOptions {
   /**
    * Map parameter to specific id to get the exact value by uWS method req.getParams(id: number)
    */
-  paramsMap?: ParametersMap[];
+  paramsMap?: ParametersMap;
 
   /**
    * Retrieve req data from uWS `req` and cache these values
@@ -103,7 +100,7 @@ export default class Request implements IRequest {
 
   private [FOR_EACH]: any;
 
-  private parametersMap?: ParametersMap[];
+  private parametersMap?: ParametersMap;
 
   /**
    * Return an array of Accepted media types
@@ -241,12 +238,13 @@ export default class Request implements IRequest {
   get params(): Record<string, string> {
     if (this._params) return this._params;
 
-    this._params = this.parametersMap
-      ? this.parametersMap.reduce((acc, cur) => {
-          acc[cur.param] = this[GET_PARAMS](cur.index);
-          return acc;
-        }, {} as Record<string, string>)
-      : {};
+    this._params =
+      this.parametersMap && this.parametersMap?.length > 0
+        ? this.parametersMap.reduce((acc, cur, idx) => {
+            acc[cur] = this[GET_PARAMS](idx);
+            return acc;
+          }, {} as Record<string, string>)
+        : {};
 
     return this._params;
   }
