@@ -267,7 +267,6 @@ export default class App {
     ) {
       argsCt[givenLength] = () => {
         this.logger.print!(
-          new Date().toLocaleString(),
           'Listening on',
           args[0],
           givenLength === 2 ? argsCt[1] : '',
