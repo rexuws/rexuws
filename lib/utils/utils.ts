@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /* eslint-disable prefer-rest-params */
 import contentType from 'content-type';
 import chalk from 'chalk';
@@ -57,37 +56,48 @@ export const notFoundHtml = (method: string, path: string): string =>
 
 export const extractParamsPath = (
   path: string
-): { parametersMap: ParametersMap[]; path: string } =>
+): { parametersMap: ParametersMap; path: string; basePath: string } =>
   path === '/'
     ? {
         path: '/',
         parametersMap: [],
+        basePath: '',
       }
     : path.split('/').reduce(
         (acc, cur) => {
+          if (
+            (cur.indexOf('*') > 0 ||
+              (cur.indexOf('*') === 0 && cur.length > 1)) &&
+            cur.indexOf(':') === -1
+          )
+            // eslint-disable-next-line no-param-reassign
+            cur = `:value${acc.parametersMap.length + 1 || 1}`;
+
           if (cur.indexOf(':') !== -1) {
             const paramPart = cur.split(':');
+            acc.basePath += `/:value${acc.parametersMap.length + 1 || 1}`;
 
-            acc.parametersMap.push({
-              param: paramPart[paramPart.length - 1],
-              index: acc.parametersMap.length,
-            });
+            acc.parametersMap.push(paramPart[paramPart.length - 1]);
 
             acc.path += `/:${paramPart[paramPart.length - 1]}`;
 
             return acc;
           }
 
-          if (cur) acc.path += `/${cur}`;
-
+          if (cur) {
+            acc.path += `/${cur}`;
+            acc.basePath += `/${cur}`;
+          }
           return acc;
         },
         {
           parametersMap: [],
           path: '',
+          basePath: '',
         } as {
-          parametersMap: ParametersMap[];
+          parametersMap: ParametersMap;
           path: string;
+          basePath: string;
         }
       );
 
@@ -110,18 +120,23 @@ export const readBody = (res: HttpResponse, cb: (raw: Buffer) => void) => {
 
 export const colorConsole = {
   error() {
+    // eslint-disable-next-line no-console
     return console.error(chalk.red(...(arguments as any)));
   },
   log() {
+    // eslint-disable-next-line no-console
     return console.log(chalk.green(...(arguments as any)));
   },
   info() {
+    // eslint-disable-next-line no-console
     return console.info(chalk.blue(...(arguments as any)));
   },
   warn() {
+    // eslint-disable-next-line no-console
     return console.warn(chalk.yellow(...(arguments as any)));
   },
   trace() {
+    // eslint-disable-next-line no-console
     return console.trace(chalk.grey(...(arguments as any)));
   },
 };
