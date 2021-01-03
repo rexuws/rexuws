@@ -16,7 +16,6 @@ import {
   TMiddleware,
   TMiddlewareErrorHandler,
   NextFunction,
-
   bodyParser,
   multipartParser,
   IMultipartParserOptions,
@@ -29,7 +28,6 @@ import {
   hasAsync as checkHasAsync,
   notFoundHtml,
   extractParamsPath,
-  
 } from './utils/utils';
 import { ILogger } from './Logger';
 import {
@@ -374,6 +372,10 @@ export default class App {
             getRemoteAddressAsText: res[GET_REMOTE_ADDR],
           };
 
+          res[FROM_APP] = {
+            render: this.render.bind(this),
+          };
+
           // res[FROM_REQ] = {
           //   get: req.get,
           // };
@@ -409,6 +411,7 @@ export default class App {
           res[FROM_REQ] = {
             get: req.get.bind(req),
           };
+
           res[FROM_APP] = {
             render: this.render.bind(this),
           };
