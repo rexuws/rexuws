@@ -1,6 +1,5 @@
 /* eslint-disable prefer-rest-params */
 import contentType from 'content-type';
-import chalk from 'chalk';
 import { HttpResponse } from 'uWebSockets.js';
 import { ILogger } from '../Logger';
 import { ParametersMap } from '../Request';
@@ -116,29 +115,6 @@ export const readBody = (res: HttpResponse, cb: (raw: Buffer) => void) => {
       buffer = buffer ? Buffer.concat([buffer, chunk]) : Buffer.concat([chunk]);
     }
   });
-};
-
-export const colorConsole = {
-  error() {
-    // eslint-disable-next-line no-console
-    return console.error(chalk.red(...(arguments as any)));
-  },
-  log() {
-    // eslint-disable-next-line no-console
-    return console.log(chalk.green(...(arguments as any)));
-  },
-  info() {
-    // eslint-disable-next-line no-console
-    return console.info(chalk.blue(...(arguments as any)));
-  },
-  warn() {
-    // eslint-disable-next-line no-console
-    return console.warn(chalk.yellow(...(arguments as any)));
-  },
-  trace() {
-    // eslint-disable-next-line no-console
-    return console.trace(chalk.grey(...(arguments as any)));
-  },
 };
 
 export const hasAsync = (logger: ILogger, es5 = true) => {
