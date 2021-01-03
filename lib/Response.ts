@@ -415,7 +415,7 @@ export default class Response implements IResponse {
           'Missing Content-Type when serving file directly by buffer'
         );
 
-        this.end();
+        this.status(404).end();
 
         return;
       }
@@ -456,8 +456,7 @@ export default class Response implements IResponse {
         }
 
         if (isDir) {
-          this.status(404);
-          this.end();
+          this.status(404).end();
 
           return;
         }
@@ -598,8 +597,10 @@ export default class Response implements IResponse {
   }
 
   public download(path: string, fileName?: string, options = {}): void {
-    this.setHeader('Content-Disposition', contentDisposition(path || fileName));
-    this.sendFile(path);
+    this.setHeader(
+      'Content-Disposition',
+      contentDisposition(path || fileName)
+    ).sendFile(path);
   }
 
   public render(view: string, options?: any, callback?: any): void {
@@ -625,20 +626,17 @@ export default class Response implements IResponse {
               )
             );
           }
-          this.status(500);
-          return this.json(err);
+          return this.status(500).json(err);
         }
 
-        this.set('Content-Type', CONTENT_TYPE.HTML);
-        this.end(html);
+        this.set('Content-Type', CONTENT_TYPE.HTML).end(html);
       };
     }
 
     const { render } = this[FROM_APP];
 
     if (!render) {
-      this[WRITE_STATUS]('500');
-      this[END]('Missing view render method');
+      this.status(500).end('Missing view render method');
       return;
     }
 

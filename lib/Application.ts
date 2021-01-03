@@ -247,6 +247,7 @@ export default class App {
       path: cleanedPath,
     });
     this.logger.info(
+      new Date().toLocaleString(),
       'Map',
       method.toUpperCase(),
       path,
@@ -284,6 +285,7 @@ export default class App {
     ) {
       argsCt[givenLength] = () => {
         this.logger.print!(
+          new Date().toLocaleString(),
           'Listening on',
           args[0],
           givenLength === 2 ? argsCt[1] : '',
@@ -422,11 +424,47 @@ export default class App {
       }
     });
 
+    // Add not found handler
     if (!hasAnyMethodOnAll) {
-      this.app.any('/*', (res, req) => {
-        res.writeStatus('404');
-        res.writeHeader('Content-Type', 'text/html; charset=utf-8');
-        res.end(notFoundHtml(req.getMethod(), req.getUrl()));
+      const notFoundMiddlewares: TMiddleware[] = [
+        ...this.globalMiddlewares,
+        (req: any, res: any) => {
+          res
+            .status(404)
+            .set('Content-Type', 'text/html; charset=utf-8')
+            .end(notFoundHtml(req.method, req.url));
+          // const u = req.getUrl();
+        },
+      ];
+
+      this.app.any('/*', (_res, _req) => {
+        // const req = _req as any;
+        // const res = _res as any;
+        // const m = req.getMethod();
+        // const u = req.getUrl();
+        // res.writeHeader('Content-Type', 'text/html; charset=utf-8');
+        // res.end(toHtml(`Cannot ${m.toUpperCase()}/${u}`));
+        const res = new Response(
+          _res,
+          {
+            hasAsync: globalAsync,
+          },
+          this.logger
+        );
+        const req = new Request(_req, {
+          paramsMap: [],
+        });
+        // const req = _req as any;
+        // req[FROM_RES] = {
+        //   getProxiedRemoteAddressAsText: res[GET_PROXIED_ADDR],
+        //   getRemoteAddressAsText: res[GET_REMOTE_ADDR],
+        // };
+
+        notFoundMiddlewares[0](
+          req,
+          res,
+          this.nextHandler(1, req, res, notFoundMiddlewares)
+        );
       });
     }
   }

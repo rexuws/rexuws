@@ -163,6 +163,7 @@ export default class Request implements IRequest {
           this.url;
           this.query;
           this.params;
+          this.method;
         }
       }
 
