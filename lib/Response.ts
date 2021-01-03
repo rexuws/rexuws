@@ -615,6 +615,7 @@ export default class Response implements IResponse {
       // eslint-disable-next-line consistent-return
       cb = (err: Error, html: string): void => {
         if (err) {
+          this.debug.trace(err);
           if (err instanceof ReferenceError) {
             this.status(404);
             return this.send(
