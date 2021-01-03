@@ -14,7 +14,7 @@ import { serialize } from 'cookie';
 import contentDisposition from 'content-disposition';
 
 import { basename } from 'path';
-import { colorConsole, toArrayBuffer, toHtml } from './utils/utils';
+import { colorConsole, toArrayBuffer, toHtml } from './utils';
 
 import {
   HAS_ASYNC,
@@ -43,7 +43,7 @@ import {
   CookieOptions,
   TApplicationExposedMethods,
 } from './utils/types';
-import { NextFunction } from './Middleware';
+import { NextFunction } from './middlewares';
 
 export interface IResponseOptions {
   /**

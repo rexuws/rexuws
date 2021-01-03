@@ -3,7 +3,7 @@ import AppRouter from './lib/Route';
 import Logger, { ILoggerOptions } from './lib/Logger';
 import { IServeStaticOptions, StaticServing } from './lib/utils/static';
 
-import { colorConsole } from './lib/utils/utils';
+import { colorConsole } from './lib/utils';
 
 export type TReXAppOptions = Omit<CoreApplicationOptions, 'logger'> & {
   /**
