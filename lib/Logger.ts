@@ -84,39 +84,28 @@ export default class Logger implements ILogger {
       ? this._logger.info.bind(
           this._logger,
           this._prefix,
-          new Date().toLocaleString()
         )
       : this.off;
 
     this.log = this.hasLogger('log')
-      ? this._logger.log.bind(
-          this._logger,
-          this._prefix,
-          new Date().toLocaleString()
-        )
+      ? this._logger.log.bind(this._logger, this._prefix)
       : this.off;
 
     this.error = this.hasLogger('error')
       ? this._logger.error.bind(
           this._logger,
           this._prefix,
-          new Date().toLocaleString()
         )
       : this.off;
 
     this.warn = this.hasLogger('warn')
-      ? this._logger.warn.bind(
-          this._logger,
-          this._prefix,
-          new Date().toLocaleString()
-        )
+      ? this._logger.warn.bind(this._logger, this._prefix)
       : this.off;
 
     this.trace = this.hasLogger('trace')
       ? this._logger.trace.bind(
           this._logger,
           this._prefix,
-          new Date().toLocaleString()
         )
       : this.off;
 
@@ -125,14 +114,12 @@ export default class Logger implements ILogger {
           this._logger,
           this._prefix,
           '[DEPRECATED]',
-          new Date().toLocaleString()
         )
       : this.off;
 
     this.print = this._logger.log.bind(
       this._logger,
       this._prefix,
-      new Date().toLocaleString()
     );
   }
 
