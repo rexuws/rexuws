@@ -1,5 +1,5 @@
 import { HttpMethod } from './utils/types';
-import { TMiddleware } from './Middleware';
+import { TMiddleware } from './middlewares';
 import { PREFIXED_ROUTE } from './utils/symbol';
 
 export default class Router {

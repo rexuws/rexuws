@@ -16,7 +16,11 @@ import {
   TMiddleware,
   TMiddlewareErrorHandler,
   NextFunction,
-} from './Middleware';
+
+  bodyParser,
+  multipartParser,
+  IMultipartParserOptions,
+} from './middlewares';
 import { HttpMethod } from './utils/types';
 import {
   getParamNames,
@@ -25,12 +29,8 @@ import {
   hasAsync as checkHasAsync,
   notFoundHtml,
   extractParamsPath,
+  
 } from './utils/utils';
-import {
-  bodyParser,
-  multipartParser,
-  IMultipartParserOptions,
-} from './utils/middlewares';
 import { ILogger } from './Logger';
 import {
   PREFIXED_ROUTE,
@@ -247,7 +247,6 @@ export default class App {
       path: cleanedPath,
     });
     this.logger.info(
-      new Date().toLocaleString(),
       'Map',
       method.toUpperCase(),
       path,
@@ -285,7 +284,6 @@ export default class App {
     ) {
       argsCt[givenLength] = () => {
         this.logger.print!(
-          new Date().toLocaleString(),
           'Listening on',
           args[0],
           givenLength === 2 ? argsCt[1] : '',
@@ -455,10 +453,10 @@ export default class App {
           paramsMap: [],
         });
         // const req = _req as any;
-        // req[FROM_RES] = {
-        //   getProxiedRemoteAddressAsText: res[GET_PROXIED_ADDR],
-        //   getRemoteAddressAsText: res[GET_REMOTE_ADDR],
-        // };
+        req[FROM_RES] = {
+          getProxiedRemoteAddressAsText: res[GET_PROXIED_ADDR],
+          getRemoteAddressAsText: res[GET_REMOTE_ADDR],
+        };
 
         notFoundMiddlewares[0](
           req,
