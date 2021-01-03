@@ -81,10 +81,7 @@ export default class Logger implements ILogger {
     this._logger = logger || console;
 
     this.info = this.hasLogger('info')
-      ? this._logger.info.bind(
-          this._logger,
-          this._prefix,
-        )
+      ? this._logger.info.bind(this._logger, this._prefix)
       : this.off;
 
     this.log = this.hasLogger('log')
@@ -92,10 +89,7 @@ export default class Logger implements ILogger {
       : this.off;
 
     this.error = this.hasLogger('error')
-      ? this._logger.error.bind(
-          this._logger,
-          this._prefix,
-        )
+      ? this._logger.error.bind(this._logger, this._prefix)
       : this.off;
 
     this.warn = this.hasLogger('warn')
@@ -103,24 +97,14 @@ export default class Logger implements ILogger {
       : this.off;
 
     this.trace = this.hasLogger('trace')
-      ? this._logger.trace.bind(
-          this._logger,
-          this._prefix,
-        )
+      ? this._logger.trace.bind(this._logger, this._prefix)
       : this.off;
 
     this.deprecate = this.hasLogger('deprecate')
-      ? this._logger.warn.bind(
-          this._logger,
-          this._prefix,
-          '[DEPRECATED]',
-        )
+      ? this._logger.warn.bind(this._logger, this._prefix, '[DEPRECATED]')
       : this.off;
 
-    this.print = this._logger.log.bind(
-      this._logger,
-      this._prefix,
-    );
+    this.print = this._logger.log.bind(this._logger, this._prefix);
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -137,5 +121,12 @@ export default class Logger implements ILogger {
     if (this._level === type) return true;
 
     return false;
+  }
+
+  public getOptions(): ILoggerOptions {
+    return {
+      level: this._level,
+      prefix: this._prefix,
+    };
   }
 }
