@@ -1,7 +1,7 @@
 import * as uWS from 'uWebSockets.js';
-import * as qs from 'qs';
-import { NextFunction } from '../Middleware';
-import { HttpMethod, IRequest, IResponse } from './types';
+import { HttpMethod, IRequest, IResponse } from '../utils/types';
+import { NextFunction } from './types';
+import { parse } from './bodyParser';
 
 export interface IMultipartParserOptions {
   /**
@@ -21,48 +21,6 @@ export interface IMultipartParserOptions {
    */
   maxSize?: number;
 }
-
-const parse = (
-  ct: string,
-  raw: Buffer
-): Record<string, string> | string | Buffer => {
-  if (ct === 'application/json' || ct === 'text/json') {
-    const json = JSON.parse(raw as any);
-    return json;
-  }
-
-  if (ct === 'application/octet-stream') {
-    return raw;
-  }
-
-  if (ct.startsWith('text/')) {
-    return raw.toString();
-  }
-
-  if (ct === 'application/x-www-form-urlencoded') {
-    return qs.parse(raw.toString()) as {};
-  }
-
-  return raw;
-};
-
-export const bodyParser = (
-  req: IRequest,
-  res: IResponse,
-  next: NextFunction
-) => {
-  const ct = req.header('content-type');
-  if (!req.raw || !ct) {
-    return next();
-  }
-
-  try {
-    req.body = parse(ct, req.raw);
-    return next();
-  } catch (err) {
-    return next(err);
-  }
-};
 
 export const multipartParser = (
   req: IRequest,

@@ -1,11 +1,8 @@
-import { ILoggerProvider } from '../Logger';
+/* eslint-disable import/prefer-default-export */
+import Logger, { ILoggerProvider } from '../Logger';
 import { IRequest, IResponse } from '../utils/types';
-import { NextFunction } from '../Middleware';
-
-// eslint-disable-next-line import/prefer-default-export
-export interface IHttpLoggerOptions {
-  logger?: ILoggerProvider;
-}
+import { NextFunction } from './types';
+import { colorConsoleNoTimestamp } from '../utils';
 
 /**
  * A simple HttpLogger inspired by morgan
@@ -17,7 +14,8 @@ export interface IHttpLoggerOptions {
  *
  * Passing a custom console which must be extended from ILoggerProvider (@default console)
  *
- * If you want to use global application's logger , use the code below
+ * If you want to use global application logging setting, use the code below
+ *
  * @example
  * import rex, { getLoggerInstance, httpLogger } from 'rex'
  * const app = rex();
@@ -25,15 +23,24 @@ export interface IHttpLoggerOptions {
  *
  * @param opts
  */
-export const httpLogger = (logger: ILoggerProvider = console) => {
+export const httpLogger = (_logger: ILoggerProvider = console) => {
+  let logger = _logger;
+  
+  if (logger instanceof Logger) {
+    const baseOpts = logger.getOptions();
+
+    logger = new Logger(baseOpts, colorConsoleNoTimestamp);
+  }
+
   if (process.env.NODE_ENV === 'production')
-    logger.warn(
+    _logger.warn(
       'You are using HttpLogger middleware in production mode which may decrease the overall performance!'
     );
 
   return (req: IRequest, res: IResponse, next: NextFunction) => {
-    const startDate = new Date().toLocaleString();
+    // const startDate = new Date().toLocaleString();
     const { ip, method, url } = req;
+    res.locals._startTimeAsLocaleString = new Date().toLocaleString();
     res.locals._startTime = process.hrtime();
 
     const { end } = res;
@@ -49,7 +56,7 @@ export const httpLogger = (logger: ILoggerProvider = console) => {
         ).toFixed(2)} ms`;
 
         logger!.info(
-          startDate,
+          res.locals._startTimeAsLocaleString,
           ip,
           method.toUpperCase(),
           url,
