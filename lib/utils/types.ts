@@ -246,6 +246,16 @@ export interface IRequest {
   originalReq: HttpRequest;
 
   url: string;
+
+  /**
+   * The prefixed url comming from application set up
+   */
+  baseUrl?: string;
+
+  /**
+   * The expected url set up by router (omit application's modifications)
+   */
+  originalUrl: string;
 }
 
 export interface IResponse {
