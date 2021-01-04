@@ -99,6 +99,7 @@ export default class App {
       parametersMap: ParametersMap;
       hasAsync?: boolean;
       path: string;
+      baseUrl?: string;
     }
   > = new Map();
 
@@ -152,14 +153,19 @@ export default class App {
           const mergedPath = pathOrMiddleware + mdw.prefix;
 
           mdw.handlers.forEach((v, k) => {
-            this.add(k, mergedPath, v);
+            this.add(k, mergedPath, v, pathOrMiddleware + mdw.prefix);
           });
 
           return this;
         }
 
         router.handlers.forEach((v, k) => {
-          this.add(v.method, `${pathOrMiddleware}${k}`, v.middlewares);
+          this.add(
+            v.method,
+            `${pathOrMiddleware}${k}`,
+            v.middlewares,
+            pathOrMiddleware
+          );
         });
         return this;
       }
@@ -223,7 +229,8 @@ export default class App {
   private add(
     method: HttpMethod,
     path: string,
-    middlewares: TMiddleware[]
+    middlewares: TMiddleware[],
+    baseUrl?: string
   ): this {
     const { path: cleanedPath, parametersMap, basePath } = extractParamsPath(
       path.startsWith('/') ? path : `/${path}`
@@ -243,6 +250,7 @@ export default class App {
       parametersMap,
       hasAsync: middlewares.some(this.checkHasAsync),
       path: cleanedPath,
+      baseUrl,
     });
     this.logger.info(
       'Map',
@@ -329,7 +337,7 @@ export default class App {
       (typeof useDefaultParser === 'object' && useDefaultParser.cookieParser);
 
     this.routeMethods.forEach((v, k) => {
-      const { method, middlewares, hasAsync, parametersMap, path } = v;
+      const { method, middlewares, hasAsync, parametersMap, path, baseUrl } = v;
 
       if (!hasAnyMethodOnAll && method === HttpMethod.ANY && path === '/*') {
         hasAnyMethodOnAll = true;
@@ -363,6 +371,7 @@ export default class App {
             paramsMap: parametersMap,
             forceInit: true,
             cookieParser: useDefaultCookieParser,
+            baseUrl,
           });
 
           const res = new Response(_res, { hasAsync: true }, this.logger);
@@ -401,6 +410,7 @@ export default class App {
           const req = new Request(_req, {
             paramsMap: parametersMap,
             cookieParser: useDefaultCookieParser,
+            baseUrl,
           });
 
           req[FROM_RES] = {
@@ -454,6 +464,7 @@ export default class App {
         );
         const req = new Request(_req, {
           paramsMap: [],
+          // baseUrl,
         });
         // const req = _req as any;
         req[FROM_RES] = {

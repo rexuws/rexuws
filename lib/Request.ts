@@ -77,6 +77,11 @@ export interface IRequestOptions {
    * Enable dedicated cookie parser method
    */
   cookieParser?: boolean;
+
+  /**
+   * The prefixed url comming from application set up
+   */
+  baseUrl?: string;
 }
 
 export default class Request implements IRequest {
@@ -132,6 +137,10 @@ export default class Request implements IRequest {
 
   private _hasCookieParser = false;
 
+  private _baseUrl?: string;
+
+  private _originalUrl?: string;
+
   constructor(req: HttpRequest, opts?: IRequestOptions) {
     this.originalReq = req;
     this[GET_HEADER] = req.getHeader.bind(req);
@@ -142,7 +151,7 @@ export default class Request implements IRequest {
     this[GET_URL] = req.getUrl.bind(req);
 
     if (opts) {
-      const { paramsMap, forceInit, cookieParser } = opts;
+      const { paramsMap, forceInit, cookieParser, baseUrl } = opts;
       this.parametersMap = paramsMap;
 
       if (forceInit) {
@@ -171,6 +180,8 @@ export default class Request implements IRequest {
         this._hasCookieParser = true;
         this._cookies = {};
       }
+
+      this._baseUrl = baseUrl;
     }
 
     this.header = this.get;
@@ -221,14 +232,6 @@ export default class Request implements IRequest {
   }
 
   get url(): string {
-    if (this._url) return this._url;
-
-    this._url = this[GET_URL]();
-
-    return this._url as string;
-  }
-
-  get originalUrl(): string {
     if (this._url) return this._url;
 
     this._url = this[GET_URL]();
@@ -311,6 +314,22 @@ export default class Request implements IRequest {
     }
 
     return this[GET_HEADER]('cookie');
+  }
+
+  get baseUrl(): string | undefined {
+    return this._baseUrl;
+  }
+
+  get originalUrl(): string {
+    if (this._originalUrl) return this._originalUrl;
+
+    if (!this._baseUrl) return this.url;
+
+    const escapedUrl = this.url.replace(this._baseUrl, '');
+
+    this._originalUrl = escapedUrl;
+
+    return escapedUrl;
   }
 
   public accepts(...type: string[]): string | string[] | false {
