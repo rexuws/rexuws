@@ -4,6 +4,7 @@ import { IRequest, IResponse } from '../utils/types';
 import { NextFunction } from './types';
 import { colorConsoleNoTimestamp } from '../utils';
 
+// TODO add stream option
 /**
  * A simple HttpLogger inspired by morgan
  *
@@ -25,7 +26,7 @@ import { colorConsoleNoTimestamp } from '../utils';
  */
 export const httpLogger = (_logger: ILoggerProvider = console) => {
   let logger = _logger;
-  
+
   if (logger instanceof Logger) {
     const baseOpts = logger.getOptions();
 
@@ -38,7 +39,6 @@ export const httpLogger = (_logger: ILoggerProvider = console) => {
     );
 
   return (req: IRequest, res: IResponse, next: NextFunction) => {
-    // const startDate = new Date().toLocaleString();
     const { ip, method, url } = req;
     res.locals._startTimeAsLocaleString = new Date().toLocaleString();
     res.locals._startTime = process.hrtime();
