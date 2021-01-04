@@ -1,6 +1,8 @@
 /* eslint-disable prefer-rest-params */
 import contentType from 'content-type';
 import { HttpResponse } from 'uWebSockets.js';
+import mmm, { MAGIC_MIME_TYPE } from 'mmmagic';
+import util from 'util';
 import { ILogger } from '../Logger';
 import { ParametersMap } from '../Request';
 
@@ -149,3 +151,7 @@ export const hasAsync = (logger: ILogger, es5 = true) => {
  */
 export const toArrayBuffer = (buffer: Buffer): ArrayBuffer =>
   buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+
+const magic = new mmm.Magic(MAGIC_MIME_TYPE);
+
+export const getMime = util.promisify(magic.detectFile).bind(magic);
