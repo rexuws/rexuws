@@ -1,7 +1,6 @@
 import Application, { CoreApplicationOptions } from './lib/Application';
 import AppRouter from './lib/Route';
 import Logger, { ILoggerOptions } from './lib/Logger';
-import { IServeStaticOptions, StaticServing } from './lib/utils/static';
 
 import { colorConsole } from './lib/utils';
 
@@ -90,19 +89,4 @@ export default (options?: TReXAppOptions): Application => {
 
 export const Router = () => new AppRouter();
 
-export const serveStatic = (
-  path: string,
-  options?: IServeStaticOptions,
-  appName?: string | number
-): StaticServing => {
-  const logger =
-    getLoggerInstance(appName) ||
-    new Logger(
-      {
-        prefix: '[STATIC SERVING]',
-      },
-      colorConsole
-    );
-
-  return new StaticServing(path, logger, options);
-};
+export * as middlewares from './lib/middlewares';
