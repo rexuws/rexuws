@@ -7,8 +7,8 @@ import path from 'path';
 import fsSync from 'fs';
 import { ILoggerProvider } from '../Logger';
 import Router from '../Route';
-import { getMime } from './utils';
-import FileWatcher from '../../fileWatcher';
+import { getMime } from '../utils/utils';
+import FileWatcher from '../utils/fileWatcher';
 
 export interface IServeStaticOptions {
   [key: string]: any;
@@ -67,7 +67,7 @@ interface IFileDataOrDir {
   mtime?: Date;
 }
 
-export class StaticServing {
+export class StaticServer {
   static Store: Record<string, Map<string, IFileDataOrDir>> = {};
 
   static Options: IServeStaticOptions = {
@@ -127,7 +127,7 @@ export class StaticServing {
     dirContent: string[],
     parentPath?: string
   ): Promise<void> {
-    StaticServing.Logger.info(`Reading files in ${parentPath || dirContent}...`);
+    StaticServer.Logger.info(`Reading files in ${parentPath || dirContent}...`);
 
     for (let i = 0; i < dirContent.length; i++) {
       const name = parentPath
@@ -136,12 +136,12 @@ export class StaticServing {
 
       const fullPath = path.join(this.path, name);
 
-      StaticServing.Logger.info(`Reading ${name} (${fullPath}) `);
+      StaticServer.Logger.info(`Reading ${name} (${fullPath}) `);
 
       const stat = await fs.stat(fullPath);
 
       if (stat.isFile()) {
-        const { name: key, data } = await StaticServing.readFileFromPathAndStat(
+        const { name: key, data } = await StaticServer.readFileFromPathAndStat(
           fullPath,
           stat,
           name
@@ -209,9 +209,9 @@ export class StaticServing {
       const dir = await fs.readdir(this.path);
 
       await this.readFilesOrDir(dir);
-      StaticServing.Store[this.path] = this.pathMappers;
+      StaticServer.Store[this.path] = this.pathMappers;
     } catch (error) {
-      StaticServing.Logger.trace(error);
+      StaticServer.Logger.trace(error);
     }
   }
 
