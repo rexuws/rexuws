@@ -5,9 +5,10 @@ import fs from 'fs/promises';
 import { contentType } from 'mime-types';
 import path from 'path';
 import fsSync from 'fs';
-import { ILogger } from '../Logger';
+import { ILoggerProvider } from '../Logger';
 import Router from '../Route';
 import { getMime } from './utils';
+import FileWatcher from '../../fileWatcher';
 
 export interface IServeStaticOptions {
   [key: string]: any;
@@ -21,42 +22,40 @@ export interface IServeStaticOptions {
    * If `true` cache all files
    *
    * If `false` use mime-types.contentType() only to extract content type from file's extension
-   * @default false
+   * @default true
    */
   useCache?: boolean | string | string[];
 
   /**
-   * Specify the maximum size of file allowed to be cached
+   * Specify the maximum size of file which will be eligible for caching
    * If '-1' skip this policy
    *
-   * @default -1
+   * @default 102400 (100kB)
    */
   maxSize?: number;
-
-  /**
-   * Use native uWS GET for each file
-   *
-   * If `false` Mount on `GET /some-path/*`
-   * @default false
-   */
-  useNativeRouting?: boolean;
 
   /**
    * Watch directory for file's changes
    *
    * If `true` Asynchronously watch directory change by `chokidar` which will execute an action on the ServeStaticStore
-   * right after such events as `add`, `change`, `unlink`, etc... happened in the directory
+   * right after such events as `add`, `change`, `unlink` happened in the directory
    *
-   * If `false` Do nothing which means if there's new file, it will not be served automatically. For the modified file,
+   * If `false` Do nothing which means if there's new file, it will not be served automatically (respose 404 Not Found). For the modified file,
    * if it has already been cached, the cache version will be served.
    *
-   * If `onNotFound` Try to serve file directly and save it to the store (its data will be cached if it does not violate caching policy ) if the given path does exist when it couldn't be found from
-   * the store.
+   * If `onNotFound`When the given path does exist and it couldn't be found the store,
+   * try to serve file directly (res.sendFile) and resave it to the store (if it does not violate caching policies )
    *
-   * This option has no effect if `useNativeRouting` is being enabled
-   * @default false
+   * @default true
    */
   watcher?: boolean | 'onNotFound';
+
+  /**
+   * Set Header: Cache-Control: public, max-age=value
+   *
+   * @default 604800 7days
+   */
+  maxAge?: number;
 }
 
 interface IFileDataOrDir {
@@ -64,6 +63,8 @@ interface IFileDataOrDir {
   isDirectory?: boolean;
   data?: Buffer;
   fileSize?: number;
+  lastModified?: string;
+  mtime?: Date;
 }
 
 export class StaticServing {
@@ -72,46 +73,43 @@ export class StaticServing {
   static Options: IServeStaticOptions = {
     maxSize: 1024 * 100, // 100kb
     useCache: true,
-    useNativeRouting: false,
-    watcher: false,
+    watcher: true,
   };
 
-  static Config(opts: IServeStaticOptions) {
+  static Config(opts: IServeStaticOptions, logger?: ILoggerProvider) {
     const defaultOpts = {
       maxSize: 1024 * 1000, // 100kb
       useCache: true,
-      useNativeRouting: false,
-      watcher: false,
+      watcher: true,
+      maxAge: 604800, // 7 days
     };
 
     if (!opts || typeof opts !== 'object' || Object.keys(opts).length <= 0)
       this.Options = defaultOpts;
 
     this.Options = {
+      ...opts,
       ...defaultOpts,
-      opts,
     };
+
+    if (logger) {
+      this.Logger = logger;
+    }
+
+    this.Watcher = opts.watcher || false;
   }
+
+  private static Logger: ILoggerProvider = console;
 
   private static Watcher: boolean | 'onNotFound' = false;
 
+  private static FileWatcher: FileWatcher;
+
   private path: string;
-
-  private maxSize = 1024 * 100;
-
-  private allowMimes: string[] = [];
-
-  private debug: ILogger;
 
   private pathMappers: Map<string, IFileDataOrDir>;
 
-  private mimeChecker?: (path: string) => Promise<string | string[]>;
-
-  private useNativeRouting = false;
-
-  private watcher: boolean | 'onNotFound' = false;
-
-  constructor(path: string, debug: ILogger, options: IServeStaticOptions = {}) {
+  constructor(path: string) {
     if (!path) {
       throw new TypeError('Missing path for serving static contents');
     }
@@ -122,29 +120,6 @@ export class StaticServing {
 
     this.path = path;
 
-    if (!options && typeof options !== 'object') {
-      throw new TypeError('Options must be an object');
-    }
-
-    if (options.useCache) {
-      if (typeof options.useCache === 'string') {
-        this.allowMimes.push(options.useCache);
-      } else if (Array.isArray(options.useCache))
-        this.allowMimes = options.useCache;
-    }
-
-    if (options.maxSize) {
-      this.maxSize = options.maxSize;
-    }
-
-    if (options.useNativeRouting) {
-      this.useNativeRouting = options.useNativeRouting;
-    }
-
-    if (options.watcher) this.watcher = options.watcher;
-
-    this.debug = debug;
-
     this.pathMappers = new Map();
   }
 
@@ -152,7 +127,7 @@ export class StaticServing {
     dirContent: string[],
     parentPath?: string
   ): Promise<void> {
-    this.debug.info(`Reading files in ${parentPath || dirContent}`);
+    StaticServing.Logger.info(`Reading files in ${parentPath || dirContent}...`);
 
     for (let i = 0; i < dirContent.length; i++) {
       const name = parentPath
@@ -161,7 +136,7 @@ export class StaticServing {
 
       const fullPath = path.join(this.path, name);
 
-      this.debug.info(`Reading ${name} (${fullPath}) `);
+      StaticServing.Logger.info(`Reading ${name} (${fullPath}) `);
 
       const stat = await fs.stat(fullPath);
 
@@ -188,11 +163,17 @@ export class StaticServing {
     name: string
   ): Promise<{ name: string; data: IFileDataOrDir }> {
     let completeMime: string = '';
+    const { mtime } = stat;
+
+    // Need to set milliseconds to zero to avoid mis-compared UTCString to the original one
+    mtime.setMilliseconds(0);
+
     if (this.Options.useCache) {
       let mime = await getMime(fullPath);
 
       // eslint-disable-next-line prefer-destructuring
       if (Array.isArray(mime)) mime = mime[0];
+
       if (mime === 'text/plain') {
         const namePart = name ? name.split('/') : fullPath.split('/');
         completeMime = contentType(namePart[namePart.length - 1]) || mime;
@@ -205,6 +186,8 @@ export class StaticServing {
         data: {
           fileSize: stat.size,
           mime: completeMime,
+          lastModified: stat.mtime.toUTCString(),
+          mtime: stat.mtime,
         },
         name,
       };
@@ -215,6 +198,8 @@ export class StaticServing {
         fileSize: stat.size,
         mime: completeMime,
         data: await fs.readFile(fullPath),
+        lastModified: stat.mtime.toUTCString(),
+        mtime: stat.mtime,
       },
     };
   }
@@ -226,14 +211,63 @@ export class StaticServing {
       await this.readFilesOrDir(dir);
       StaticServing.Store[this.path] = this.pathMappers;
     } catch (error) {
-      this.debug.trace(error);
+      StaticServing.Logger.trace(error);
     }
   }
 
   static GetRouter(): Router {
     const router = new Router();
     const setupPaths = Object.keys(this.Store);
-    const setupContents = Object.values(this.Store);
+
+    if (this.Watcher === true) {
+      this.Logger.info('[Watcher] Watching', ...setupPaths);
+      if (!this.FileWatcher) {
+        this.FileWatcher = new FileWatcher(setupPaths, {
+          add: (baseUrl, path, stats) => {
+            this.Logger.info('[Watcher] Add file to', baseUrl, path);
+            this.readFileFromPathAndStat(`${baseUrl}/${path}`, stats!, path)
+              .then(({ data }) => {
+                this.Store[baseUrl].set(path, {
+                  data: data.data,
+                  fileSize: data.fileSize,
+                  isDirectory: data.isDirectory,
+                  mime: data.mime,
+                });
+              })
+              .catch((err) => {
+                this.Logger.error(
+                  'Something went wrong while reading file added file',
+                  `${baseUrl}/${path}`
+                );
+                this.Logger.trace(err);
+              });
+          },
+          change: (baseUrl, path, stats) => {
+            this.Logger.info('[Watcher] File gets changed in', baseUrl, path);
+            this.readFileFromPathAndStat(`${baseUrl}/${path}`, stats!, path)
+              .then(({ data }) => {
+                this.Store[baseUrl].set(path, {
+                  data: data.data,
+                  fileSize: data.fileSize,
+                  isDirectory: data.isDirectory,
+                  mime: data.mime,
+                });
+              })
+              .catch((err) => {
+                this.Logger.error(
+                  'Something went wrong while reading changed file',
+                  `${baseUrl}/${path}`
+                );
+                this.Logger.trace(err);
+              });
+          },
+          unlink: (baseUrl, path) => {
+            this.Logger.info('[Watcher] Remove file in', baseUrl, path);
+            this.Store[baseUrl].delete(path);
+          },
+        });
+      }
+    }
 
     return router.get('/*', (req, res, next) => {
       const file = req.originalUrl.startsWith('/')
@@ -241,165 +275,110 @@ export class StaticServing {
         : req.originalUrl;
 
       // look up for file in the store
-      let fileOrDir: IFileDataOrDir | undefined;
-
-      let foundPathFromCache = '';
-
-      for (let i = 0; i < setupContents.length; i++) {
-        const found = setupContents[i].get(file);
+      for (let i = 0; i < setupPaths.length; i++) {
+        const found = this.Store[setupPaths[i]].get(file);
 
         if (found) {
-          fileOrDir = found;
-          foundPathFromCache = path.join(setupPaths[i], file);
-          if (fileOrDir.isDirectory) {
-            return res.redirect('/');
+          if (found.isDirectory) {
+            return next(`Cannot GET ${req.url}`);
           }
 
-          const { data, mime, fileSize } = fileOrDir;
-          if (data) return res.sendFile(data, { mime });
+          const { data, mime, fileSize, lastModified, mtime } = found;
+
+          const headerIfModified = req.header('if-modified-since');
+
+          if (headerIfModified) {
+            if (new Date(headerIfModified) >= mtime!) {
+              return res.status(304).end();
+            }
+          }
+
+          if (data)
+            return res.sendFile(data, {
+              mime,
+              fileSize,
+              lastModified,
+              maxAge: this.Options.maxAge,
+            });
 
           // if there is no data which means fs.readFile hasn't been call and this
           // file is not elegible for caching
           // use res.sendfile to handle the action
           // the mime type has already been retrieve so pass it directly to res.sendFile to skip calling fs.getStat()
-          return res.sendFile(foundPathFromCache, { mime, fileSize });
+          return res.sendFile(path.join(setupPaths[i], file), {
+            mime,
+            fileSize,
+            lastModified,
+            maxAge: this.Options.maxAge,
+          });
         }
       }
 
-      if (!fileOrDir) {
-        // look up for file changes
-        // eslint-disable-next-line consistent-return
-        if (this.Watcher !== 'onNotFound') return next(`Cannot GET ${file}`);
+      // look up for file changes setting
+      // eslint-disable-next-line consistent-return
+      if (this.Watcher !== 'onNotFound') return next(`Cannot GET ${req.url}`);
 
-        // Get relative path in folder
-        // this.Store.keys().
-        let fileStat: fsSync.Stats | undefined;
-        let fullPath: string;
-        let foundDir: string;
-        for (let i = 0; i < setupPaths.length; i++) {
-          if (!fileStat)
-            try {
-              const joinedPath = path.join(setupPaths[i], file);
-              fileStat = fsSync.statSync(joinedPath);
-              fullPath = joinedPath;
-              foundDir = setupPaths[i];
-              return;
-            } catch (error) {
-              // do nothing
-            }
+      // Get relative path in folder
+      let fileStat: fsSync.Stats | undefined;
+      let fullPath: string;
+      let foundDir: string;
+      for (let i = 0; i < setupPaths.length; i++) {
+        if (!fileStat)
+          try {
+            const joinedPath = path.join(setupPaths[i], file);
+            fileStat = fsSync.statSync(joinedPath);
+            fullPath = joinedPath;
+            foundDir = setupPaths[i];
+            return;
+          } catch (error) {
+            // do nothing
+          }
+      }
+
+      try {
+        if (!fileStat) return next(`Cannot GET ${req.url}`);
+
+        if (fileStat.isDirectory()) return next(`Cannot GET ${req.url}`);
+
+        const { name, data: result } = this.readFileFromPathAndStat(
+          fullPath!,
+          fileStat,
+          file
+        ) as any;
+
+        // update in relative store
+        this.Store[foundDir!].set(name, result);
+
+        const { data, mime, fileSize, lastModified, mtime } = result;
+
+        const headerIfModified = req.header('if-modified-since');
+
+        if (headerIfModified) {
+          if (new Date(headerIfModified) >= mtime!) {
+            return res.status(304).end();
+          }
         }
 
-        try {
-          if (!fileStat) return next(`Cannot GET ${file}`);
+        // if there is no data which means fs.readFile hasn't been call and this
+        // file is not elegible for caching
+        // use res.sendfile to handle
+        // the mime type has already been retrieve so pass it directly to res.sendFile
+        if (!data)
+          return res.sendFile(fullPath!, {
+            mime,
+            fileSize,
+            lastModified,
+            maxAge: this.Options.maxAge,
+          });
 
-          if (fileStat.isDirectory()) return next(`Cannot GET ${file}`);
-
-          const { name, data: result } = this.readFileFromPathAndStat(
-            fullPath!,
-            fileStat,
-            file
-          ) as any;
-
-          // update in relative store
-          this.Store[foundDir!].set(name, result);
-
-          const { data, mime, fileSize } = result;
-
-          // if there is no data which means fs.readFile hasn't been call and this
-          // file is not elegible for caching
-          // use res.sendfile to handle
-          // the mime type has already been retrieve so pass it directly to res.sendFile
-          if (!data) return res.sendFile(fullPath!, { mime, fileSize });
-
-          return res.sendFile(data, { mime });
-          // return res.sendFile(data || path, {
-          //   mime,
-          // });
-        } catch {
-          return next(`Cannot GET ${file}`);
-        }
+        return res.sendFile(data, {
+          mime,
+          lastModified,
+          maxAge: this.Options.maxAge,
+        });
+      } catch {
+        return next(`Cannot GET ${req.url}`);
       }
     });
   }
-
-  // async getRouter(): Promise<Router> {
-  //   const router = new Router();
-
-  //   if (this.useNativeRouting) await this.init();
-
-  //   if (this.pathMappers.size === 0) {
-  //     this.debug.warn(`No file detected in ${this.path}`);
-  //     return router;
-  //   }
-
-  //   if (!this.useNativeRouting) {
-  //     return router.get('/:url', async (req, res, next) => {
-  //       const { url } = req.params;
-  //       // console.log(url);
-  //       const fileOrDir = this.pathMappers.get(url);
-  //       // StaticServing.Store.get(url);
-
-  //       if (!fileOrDir) {
-  //         // look up for file changes
-  //         if (this.watcher !== 'onNotFound') return next(`Cannot GET ${url}`);
-
-  //         // Get relative path in folder
-  //         const path = url;
-
-  //         try {
-  //           const stat = await fs.stat(path);
-
-  //           if (stat.isDirectory()) {
-  //             return res.redirect('/');
-  //           }
-
-  //           await this.readFileFromPathAndStat(path, stat, url);
-
-  //           const { data, mime, fileSize } = this.pathMappers.get(
-  //             url
-  //           ) as IFileDataOrDir;
-
-  //           // if there is no data which means fs.readFile hasn't been call and this
-  //           // file is not elegible for caching
-  //           // use res.sendfile to handle
-  //           // the mime type has already been retrieve so pass it directly to res.sendFile
-  //           if (data) return res.sendFile(data, { mime });
-
-  //           return res.sendFile(path, { mime, fileSize });
-  //           // return res.sendFile(data || path, {
-  //           //   mime,
-  //           // });
-  //         } catch {
-  //           return next(`Cannot GET ${url}`);
-  //         }
-  //       }
-
-  //       if (fileOrDir.isDirectory) {
-  //         return res.redirect('/');
-  //       }
-
-  //       const { data, mime, fileSize } = this.pathMappers.get(
-  //         url
-  //       ) as IFileDataOrDir;
-
-  //       // if there is no data which means fs.readFile hasn't been call and this
-  //       // file is not elegible for caching
-  //       // use res.sendfile to handle
-  //       // the mime type has already been retrieve so pass it directly to res.sendFile
-  //       if (data) return res.sendFile(data, { mime });
-
-  //       return res.sendFile(url, { mime, fileSize });
-  //     });
-  //   }
-
-  //   // this.pathMappers.forEach((v, k) => {
-  //   //   router.get(k, (req, res) => {
-  //   //     if (v.isDirectory) {
-  //   //       res.
-  //   //     }
-  //   //   });
-  //   // });
-
-  //   return router;
-  // }
 }
