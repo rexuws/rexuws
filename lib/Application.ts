@@ -317,13 +317,13 @@ export default class App {
 
     // Push default ErrorMiddleware
     this.errorMiddlewares.push((err, req, res) => {
-      res.status(500);
-
       if (err instanceof Error) {
+        res.status(500);
         const message = `${err.stack}`;
         res.send(toHtml(message));
       }
       if (typeof err === 'string') {
+        res.status(404);
         res.send(toHtml(err));
       }
     });
