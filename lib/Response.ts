@@ -386,22 +386,7 @@ export default class Response implements IResponse {
     this.end(body);
   }
 
-  public sendFile(path: string, cb?: (err: any) => void): void;
-  public sendFile(
-    buffer: Buffer,
-    options: Pick<IResponseSendFileOptions, 'mime'>,
-    cb?: (err: any) => void
-  ): void;
-  public sendFile(
-    readStream: ReadStream,
-    options: Pick<IResponseSendFileOptions, 'mime' | 'fileSize'>,
-    cb?: (err: any) => void
-  ): void;
-  public sendFile(
-    path: string,
-    options?: IResponseSendFileOptions,
-    cb?: (err: any) => void
-  ): void;
+  // TODO handle when there is a range in req header
   public sendFile(
     path: string | Buffer | ReadStream,
     options?: IResponseSendFileOptions | ((err: any) => void),
@@ -420,7 +405,16 @@ export default class Response implements IResponse {
         return;
       }
 
-      if (!ct) this.set('Content-Type', options.mime);
+      if (!ct) {
+        this.set('Content-Type', options.mime);
+        this.set('Last-Modified', options.lastModified);
+        this.set(
+          'Cache-Control',
+          options.maxAge
+            ? `public, max-age=${options.maxAge}`
+            : 'no-cache, no-store, must-revalidate'
+        );
+      }
 
       this.end(path);
 
@@ -433,6 +427,7 @@ export default class Response implements IResponse {
       let totalSize = -1;
       let mimeType = '';
       let isDir = false;
+      let lastModified = '';
 
       try {
         if (typeof options === 'object') {
@@ -443,16 +438,21 @@ export default class Response implements IResponse {
           }
           if (options.fileSize) {
             totalSize = options.fileSize;
+          }
+          if (options.lastModified) {
+            lastModified = options.lastModified;
           } else {
             const stat = fs.statSync(path);
             totalSize = stat.size;
             isDir = stat.isDirectory();
+            lastModified = stat.mtime.toUTCString();
           }
         } else {
           mimeType = contentType(fileName) || 'application/octet-stream';
           const stat = fs.statSync(path);
           totalSize = stat.size;
           isDir = stat.isDirectory();
+          lastModified = stat.mtime.toUTCString();
         }
 
         if (isDir) {
@@ -462,12 +462,18 @@ export default class Response implements IResponse {
         }
 
         if (totalSize !== -1 && totalSize <= this.maxReadFileSize) {
-          // Read the whole file into Buffer
-          this.debug.info(`Serve ${path} by fs.readFileSync()`);
-
           const fileBuffer = fs.readFileSync(path);
 
-          if (!ct) this.set('Content-Type', mimeType);
+          if (!ct) {
+            this.set('Content-Type', mimeType);
+            this.set('Last-Modified', lastModified);
+            this.set(
+              'Cache-Control',
+              options && typeof options === 'object' && options.maxAge
+                ? `public, max-age=${options.maxAge}`
+                : 'no-cache, no-store, must-revalidate'
+            );
+          }
 
           this.end(fileBuffer);
 
@@ -477,8 +483,6 @@ export default class Response implements IResponse {
         const stream = createReadStream(path);
 
         this[READ_STREAM] = stream;
-
-        this.debug.info(`Serve ${path} by ReadStream`);
 
         this.attachAbortHandler(true);
 

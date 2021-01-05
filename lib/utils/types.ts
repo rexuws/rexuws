@@ -66,20 +66,7 @@ export interface IResponseSendFileOption {
    */
   maxAge?: number;
 
-  /**
-   * root directory for relative filenames
-   */
-  root?: string;
-
-  /**
-   * object of headers to serve with file
-   */
-  header?: string;
-
-  /**
-   * Serve dotfiles, defaulting to false; can be `"allow"` to send them
-   */
-  dotFiles?: string;
+  lastModified?: string;
 }
 
 export interface IRequest {
@@ -246,6 +233,16 @@ export interface IRequest {
   originalReq: HttpRequest;
 
   url: string;
+
+  /**
+   * The prefixed url comming from application set up
+   */
+  baseUrl?: string;
+
+  /**
+   * The expected url set up by router (omit application's modifications)
+   */
+  originalUrl: string;
 }
 
 export interface IResponse {
@@ -441,12 +438,12 @@ export interface IResponse {
   sendFile(path: string, cb?: (err: any) => void): void;
   sendFile(
     buffer: Buffer,
-    options: Pick<IResponseSendFileOption, 'mime'>,
+    options: IResponseSendFileOption,
     cb?: (err: any) => void
   ): void;
   sendFile(
     readStream: ReadStream,
-    options: Pick<IResponseSendFileOption, 'mime' | 'fileSize'>,
+    options: IResponseSendFileOption,
     cb?: (err: any) => void
   ): void;
   sendFile(
@@ -493,7 +490,7 @@ export interface IResponse {
    */
   type(type: string): this;
 
-  end(body: RecognizedString): void;
+  end(body?: RecognizedString): void;
 
   originalRes: HttpResponse;
 }
