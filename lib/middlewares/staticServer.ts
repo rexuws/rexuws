@@ -56,6 +56,8 @@ export interface IServeStaticOptions {
    * @default 604800 7days
    */
   maxAge?: number;
+
+  prefix?: string;
 }
 
 interface IFileDataOrDir {
