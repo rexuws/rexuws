@@ -6,6 +6,7 @@ import {
   RecognizedString,
   us_listen_socket,
   ListenOptions,
+  us_listen_socket_close,
 } from 'uWebSockets.js';
 import pathMethod from 'path';
 import fs from 'fs';
@@ -83,6 +84,8 @@ export default class App {
   private logger: ILogger;
 
   private app?: TemplatedApp;
+
+  private token?: us_listen_socket;
 
   private globalMiddlewares: TMiddleware[] = [];
 
@@ -268,7 +271,7 @@ export default class App {
     port: number,
     cb?: (listenSocket: us_listen_socket) => void
   ): void;
-  listen(port: number, cb?: (listenSocket: any) => void): void;
+  listen(port: number, cb?: (listenSocket: us_listen_socket) => void): void;
   listen(
     port: number,
     options: ListenOptions,
@@ -288,7 +291,8 @@ export default class App {
       givenLength < 3 &&
       argsCt[givenLength - 1].constructor.name !== 'Function'
     ) {
-      argsCt[givenLength] = () => {
+      argsCt[givenLength] = (token: us_listen_socket) => {
+        this.token = token;
         this.logger.print!(
           'Listening on',
           args[0],
@@ -625,5 +629,23 @@ export default class App {
     throw new TypeError(
       'Neither renderMethod nor compileMethod has been given'
     );
+  }
+
+  public config(options: CoreApplicationOptions): this {
+    if (!this.appOptions) {
+      this.appOptions = options;
+      return this;
+    }
+
+    this.appOptions = { ...this.appOptions, ...options };
+    return this;
+  }
+
+  public close(): void {
+    if (!this.app) {
+      throw new Error("uWS App hasn't been instanciated");
+    }
+    us_listen_socket_close(this.token!);
+    this.logger.print!('Thanks for using the app');
   }
 }
