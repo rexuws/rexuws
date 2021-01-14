@@ -65,7 +65,9 @@
     "qs": "^6.9.4",
     "statuses": "^2.0.0",
     "type-is": "^1.6.18",
-    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.12.0"
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.14.0"
   },
-  "files": ["build/**/*"]
+  "files": [
+    "build/**/*"
+  ]
 }
