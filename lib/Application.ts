@@ -93,6 +93,8 @@ export default class App {
 
   private checkHasAsync: (middleware: TMiddleware) => boolean;
 
+  private nativeHandlers?: (app: TemplatedApp) => void;
+
   private routeMethods: Map<
     string,
     {
@@ -317,6 +319,13 @@ export default class App {
       throw new Error("Couldn't find uWS instance");
     }
 
+    if (this.nativeHandlers) {
+      this.logger.warn(
+        'All uWS native handlers will be mounted before any ReXUWS router gets called'
+      );
+      this.nativeHandlers(this.app);
+    }
+
     const globalAsync = this.globalMiddlewares.some(this.checkHasAsync);
 
     // Push default ErrorMiddleware
@@ -389,10 +398,6 @@ export default class App {
             render: this.render.bind(this),
           };
 
-          // res[FROM_REQ] = {
-          //   get: req.get,
-          // };
-
           readBody(res.originalRes, (raw) => {
             req.raw = raw;
             mergedMiddlewares[0](
@@ -415,6 +420,7 @@ export default class App {
             paramsMap: parametersMap,
             cookieParser: useDefaultCookieParser,
             baseUrl,
+            forceInit: globalAsync || hasAsync || undefined,
           });
 
           req[FROM_RES] = {
@@ -448,17 +454,10 @@ export default class App {
             .status(404)
             .set('Content-Type', 'text/html; charset=utf-8')
             .end(notFoundHtml(req.method, req.url));
-          // const u = req.getUrl();
         },
       ];
 
       this.app.any('/*', (_res, _req) => {
-        // const req = _req as any;
-        // const res = _res as any;
-        // const m = req.getMethod();
-        // const u = req.getUrl();
-        // res.writeHeader('Content-Type', 'text/html; charset=utf-8');
-        // res.end(toHtml(`Cannot ${m.toUpperCase()}/${u}`));
         const res = new Response(
           _res,
           {
@@ -647,5 +646,10 @@ export default class App {
     }
     us_listen_socket_close(this.token!);
     this.logger.print!('Thanks for using the app');
+  }
+
+  public useNativeHandlers(fn: (app: TemplatedApp) => void): this {
+    this.nativeHandlers = fn;
+    return this;
   }
 }

@@ -301,6 +301,9 @@ export interface IResponse {
   /** Get value for header `field`. */
   get(field: string): string | undefined;
 
+  /** Get value for header `field`. */
+  getHeader(field: string): string | undefined;
+
   /**
    * Set header `field` to `val`, or pass
    * an object of header fields.
