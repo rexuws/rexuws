@@ -398,10 +398,6 @@ export default class App {
             render: this.render.bind(this),
           };
 
-          // res[FROM_REQ] = {
-          //   get: req.get,
-          // };
-
           readBody(res.originalRes, (raw) => {
             req.raw = raw;
             mergedMiddlewares[0](
@@ -458,17 +454,10 @@ export default class App {
             .status(404)
             .set('Content-Type', 'text/html; charset=utf-8')
             .end(notFoundHtml(req.method, req.url));
-          // const u = req.getUrl();
         },
       ];
 
       this.app.any('/*', (_res, _req) => {
-        // const req = _req as any;
-        // const res = _res as any;
-        // const m = req.getMethod();
-        // const u = req.getUrl();
-        // res.writeHeader('Content-Type', 'text/html; charset=utf-8');
-        // res.end(toHtml(`Cannot ${m.toUpperCase()}/${u}`));
         const res = new Response(
           _res,
           {

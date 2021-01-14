@@ -123,11 +123,7 @@ export default class Request implements IRequest {
 
   private _headers: Record<string, string> = {};
 
-  // public params: Record<string, string>;
-
   private _parsedBody?: Record<string, unknown> | string;
-
-  // public body: string | Record<string, unknown> | undefined = undefined;
 
   public raw?: Buffer;
 

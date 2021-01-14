@@ -108,37 +108,13 @@ export default class Response implements IResponse {
   public [FROM_REQ]: TRequestExposedMethods;
 
   public getHeader: (field: string) => string | undefined;
-
-  /**
-   * Set header `field` to `val`, or pass
-   * an object of header fields.
-   *
-   * Examples:
-   *
-   *    res.set('Foo', ['bar', 'baz']);
-   *    res.set('Accept', 'application/json');
-   *    res.set({ Accept: 'text/plain', 'X-API-Key': 'tobi' });
-   *
-   * Aliased as `res.header()`.
-   */
+  
   public set: (field: Record<string, string> | string, val?: string) => this;
 
   public header: (field: Record<string, string> | string, val?: string) => this;
 
   public contentType: (type: string) => this;
 
-  /**
-   * Set _Content-Type_ response header with `type` through `mime.lookup()`
-   * when it does not contain "/", or set the Content-Type to `type` otherwise.
-   *
-   * Examples:
-   *
-   *     res.type('.html');
-   *     res.type('html');
-   *     res.type('json');
-   *     res.type('application/json');
-   *     res.type('png');
-   */
   public type: (type: string) => this;
 
   private [HAS_ASYNC]: boolean;
