@@ -93,6 +93,8 @@ export default class App {
 
   private checkHasAsync: (middleware: TMiddleware) => boolean;
 
+  private nativeHandlers?: (app: TemplatedApp) => void;
+
   private routeMethods: Map<
     string,
     {
@@ -315,6 +317,13 @@ export default class App {
   private initRoutes(): void {
     if (!this.app) {
       throw new Error("Couldn't find uWS instance");
+    }
+
+    if (this.nativeHandlers) {
+      this.logger.warn(
+        'All uWS native handlers will be mounted before any ReXUWS router gets called'
+      );
+      this.nativeHandlers(this.app);
     }
 
     const globalAsync = this.globalMiddlewares.some(this.checkHasAsync);
@@ -648,5 +657,10 @@ export default class App {
     }
     us_listen_socket_close(this.token!);
     this.logger.print!('Thanks for using the app');
+  }
+
+  public useNativeHandlers(fn: (app: TemplatedApp) => void): this {
+    this.nativeHandlers = fn;
+    return this;
   }
 }
