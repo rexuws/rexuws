@@ -415,6 +415,7 @@ export default class App {
             paramsMap: parametersMap,
             cookieParser: useDefaultCookieParser,
             baseUrl,
+            forceInit: globalAsync || hasAsync || undefined,
           });
 
           req[FROM_RES] = {
