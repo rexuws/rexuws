@@ -1,6 +1,6 @@
 name: CI
 on:
-  merge:
+  push:
     branches:
       -master
 jobs:
