@@ -107,6 +107,8 @@ export default class Response implements IResponse {
 
   public [FROM_REQ]: TRequestExposedMethods;
 
+  public getHeader: (field: string) => string | undefined;
+
   /**
    * Set header `field` to `val`, or pass
    * an object of header fields.
@@ -168,6 +170,8 @@ export default class Response implements IResponse {
     this.set = this.setHeader;
 
     this.header = this.setHeader;
+
+    this.getHeader = this.get;
 
     // Set express type method
     this.type = this.setType;
