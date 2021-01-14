@@ -652,7 +652,7 @@ export default class Response implements IResponse {
     render(view, opts, cb);
   }
 
-  public end(body?: RecognizedString, hasAsync?: boolean) {
+  public end(body: RecognizedString = '', hasAsync?: boolean) {
     if (hasAsync || this[HAS_ASYNC]) {
       if (!this.originalRes.aborted)
         this[CORK](() => {
