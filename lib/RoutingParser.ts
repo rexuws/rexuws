@@ -4,8 +4,7 @@ import { TMiddleware } from './middlewares';
 import { ParametersMap } from './Request';
 import { ILogger } from './Logger';
 import { extractParamsPath } from './utils';
-
-export const LAZY_ASYNC_CHECKER: unique symbol = Symbol('Route/checkHasAsync');
+import { LAZY_ASYNC_CHECKER } from './utils/symbol';
 
 export interface IRouting {
   get(path: string, ...middlewares: TMiddleware[]): this;
