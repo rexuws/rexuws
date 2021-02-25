@@ -1,5 +1,5 @@
 import Application, { CoreApplicationOptions } from './lib/Application';
-import AppRouter from './lib/Route';
+import { DefaultRouter } from './lib/router';
 import Logger, { ILoggerOptions } from './lib/Logger';
 
 import { colorConsole } from './lib/utils';
@@ -87,6 +87,6 @@ export default (options?: TReXAppOptions): Application => {
   return app;
 };
 
-export const Router = () => new AppRouter();
+export const Router = () => new DefaultRouter();
 
 export * as middlewares from './lib/middlewares';

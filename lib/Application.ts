@@ -12,7 +12,6 @@ import pathMethod from 'path';
 import fs from 'fs';
 import Request from './Request';
 import Response from './Response';
-import Router, { IPrefixedRoutes, IPrefixedRoutesSettings } from './Route';
 import {
   TMiddleware,
   TMiddlewareErrorHandler,
@@ -28,17 +27,28 @@ import {
   readBody,
   hasAsync as checkHasAsync,
   notFoundHtml,
+  extractParamsPath,
 } from './utils/utils';
 import { ILogger } from './Logger';
 import {
-  PREFIXED_ROUTE,
   FROM_RES,
   GET_REMOTE_ADDR,
   GET_PROXIED_ADDR,
   FROM_REQ,
   FROM_APP,
+  LAZY_ASYNC_CHECKER,
 } from './utils/symbol';
-import AbstractRoutingParser, { LAZY_ASYNC_CHECKER } from './RoutingParser';
+import {
+  AbstractRoutingParser,
+  BaseRouter,
+  IRouteHandler,
+  IUWSRouting,
+  TUWSHandlers,
+  PrefixRouter,
+  IGetRouteHandlers,
+  TDefaultRoutingFn,
+  DefaultRouter,
+} from './router';
 
 export interface CoreApplicationOptions {
   /**
@@ -78,7 +88,9 @@ export interface CoreApplicationOptions {
   logger?: ILogger;
 }
 
-export default class App extends AbstractRoutingParser {
+export default class App
+  extends AbstractRoutingParser<IRouteHandler, TDefaultRoutingFn>
+  implements IUWSRouting {
   private appOptions: CoreApplicationOptions = {};
 
   private logger: ILogger;
@@ -105,9 +117,10 @@ export default class App extends AbstractRoutingParser {
 
   private extName?: string;
 
-  constructor(options: CoreApplicationOptions) {
-    super(options.logger!);
+  private nativeHandlers?: TUWSHandlers;
 
+  constructor(options: CoreApplicationOptions) {
+    super();
     this.appOptions = options || {
       useDefaultParser: true,
     };
@@ -121,58 +134,102 @@ export default class App extends AbstractRoutingParser {
     this.checkHasAsync = checkHasAsync(this.logger);
   }
 
-  use(path: string, router: Router): this;
-  use(path: string, router: IPrefixedRoutes): this;
+  // eslint-disable-next-line class-methods-use-this
+  protected transform(args: unknown[]): [string, TMiddleware[]] {
+    const [path, ...middlewares] = args;
+
+    return [path as string, middlewares as TMiddleware[]];
+  }
+
+  /**
+   * @override
+   * @param method
+   * @param path
+   * @param middlewares
+   * @param baseUrl
+   */
+  protected add(
+    method: HttpMethod,
+    path: string,
+    middlewares: TMiddleware[],
+    baseUrl?: string
+  ): this {
+    const { path: cleanedPath, parametersMap, basePath } = extractParamsPath(
+      path.startsWith('/') ? path : `/${path}`
+    );
+
+    const exist = this.routeHandlers.get(method + basePath);
+
+    if (exist)
+      this.logger.warn(
+        `There's already a route handler for ${method.toUpperCase()} ${cleanedPath} (original path: ${
+          exist.originPath
+        }), the existed one will be overrided!`
+      );
+
+    this.routeHandlers.set(method + basePath, {
+      method,
+      middlewares,
+      originPath: path,
+      parametersMap,
+      hasAsync: middlewares.some(this.checkHasAsync),
+      path: cleanedPath,
+      baseUrl,
+    });
+
+    this.logger.info(
+      'Map',
+      method.toUpperCase(),
+      path,
+      '=>',
+      method.toUpperCase(),
+      cleanedPath
+    );
+    return this;
+  }
+
+  useNativeHandlers(fn: TUWSHandlers): void {
+    this.nativeHandlers = fn;
+  }
+
+  use(path: string, router: IGetRouteHandlers): this;
   use(
     middleware: (req: Request, res: Response, next: NextFunction) => void
   ): this;
   use(middleware: TMiddlewareErrorHandler): this;
-  use(
-    pathOrMiddleware: any,
-    router?:
-      | Router
-      | (IPrefixedRoutes & IPrefixedRoutesSettings)
-      | IPrefixedRoutes
-  ): this {
+  use(pathOrMiddleware: any, router?: IGetRouteHandlers): this {
     if (typeof pathOrMiddleware === 'string') {
-      if (!Router) throw new TypeError('app.use(path, router) missing Router');
+      if (!router) throw new TypeError('app.use(path, router) missing Router');
 
-      if (router instanceof Router) {
-        if (router.prefixRoutes) {
-          // Merge root path and router-set path
-          const mdw = router.prefixRoutes;
-
-          const mergedPath = pathOrMiddleware + mdw.prefix;
-
-          mdw.handlers.forEach((v, k) => {
-            this.add(k, mergedPath, v, pathOrMiddleware + mdw.prefix);
-          });
-
-          return this;
-        }
-
-        router.handlers.forEach((v, k) => {
-          this.add(
-            v.method,
-            `${pathOrMiddleware}${k}`,
-            v.middlewares,
-            pathOrMiddleware
-          );
-        });
-        return this;
+      if (!(router instanceof BaseRouter)) {
+        throw new TypeError(
+          'Router must be an instance of AbstractRoutingParser'
+        );
       }
 
-      if ((router as any)[PREFIXED_ROUTE]) {
-        // Merge root path and router-set path
-        const mergedPath =
-          pathOrMiddleware + (router as IPrefixedRoutesSettings).prefix;
+      if (router instanceof DefaultRouter) {
+        // check for PrefixRouter ins BaseRouter
+        const { prefixRouter } = router;
 
-        (router as IPrefixedRoutesSettings).handlers.forEach((v, k) => {
-          this.add(k, mergedPath, v);
-        });
-
-        return this;
+        if (prefixRouter && prefixRouter instanceof PrefixRouter)
+          prefixRouter
+            .getRouteHandlers()
+            .forEach(({ method, middlewares, path }, k) => {
+              this.add(method, `${pathOrMiddleware}/${path}`, middlewares, pathOrMiddleware);
+            });
       }
+
+      const handlers = router.getRouteHandlers();
+      handlers.forEach(({ method, middlewares, path }, k) => {
+        this.add(
+          method,
+          `${pathOrMiddleware}/${path}`,
+          middlewares,
+          pathOrMiddleware
+        );
+      });
+
+      return this;
     }
 
     if (getParamNames(pathOrMiddleware as any).length === 4) {
@@ -233,9 +290,9 @@ export default class App extends AbstractRoutingParser {
       throw new Error("Couldn't find uWS instance");
     }
 
-    if (this.setNativeHandlersToApp) {
+    if (this.nativeHandlers) {
       this.logger.warn('All uWS native handlers will be mounted first');
-      this.setNativeHandlersToApp(this.app);
+      this.nativeHandlers(this.app);
     }
 
     const globalAsync = this.globalMiddlewares.some(this.checkHasAsync);
@@ -261,7 +318,7 @@ export default class App extends AbstractRoutingParser {
       (typeof useDefaultParser === 'boolean' && useDefaultParser) ||
       (typeof useDefaultParser === 'object' && useDefaultParser.cookieParser);
 
-    this.routeMethods.forEach((v) => {
+    this.routeHandlers.forEach((v) => {
       const {
         method,
         middlewares,
@@ -573,5 +630,3 @@ export default class App extends AbstractRoutingParser {
     this.logger.print!('Thanks for using the app');
   }
 }
-
-// export interface Lazy<T
