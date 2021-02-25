@@ -47,7 +47,7 @@ import { NextFunction } from './middlewares';
 
 export interface IResponseOptions {
   /**
-   * Specify if this route is async
+   * Specify in this route handler has Async method
    */
   hasAsync?: boolean;
 

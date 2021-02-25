@@ -105,5 +105,3 @@ dist
 
 # Test Build
 build/
-
-tmp/
