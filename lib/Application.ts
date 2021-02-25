@@ -10,9 +10,8 @@ import {
 } from 'uWebSockets.js';
 import pathMethod from 'path';
 import fs from 'fs';
-import Request, { ParametersMap } from './Request';
+import Request from './Request';
 import Response from './Response';
-import Router, { IPrefixedRoutes, IPrefixedRoutesSettings } from './Route';
 import {
   TMiddleware,
   TMiddlewareErrorHandler,
@@ -32,13 +31,24 @@ import {
 } from './utils/utils';
 import { ILogger } from './Logger';
 import {
-  PREFIXED_ROUTE,
   FROM_RES,
   GET_REMOTE_ADDR,
   GET_PROXIED_ADDR,
   FROM_REQ,
   FROM_APP,
+  LAZY_ASYNC_CHECKER,
 } from './utils/symbol';
+import {
+  AbstractRoutingParser,
+  BaseRouter,
+  IRouteHandler,
+  IUWSRouting,
+  TUWSHandlers,
+  PrefixRouter,
+  IGetRouteHandlers,
+  TDefaultRoutingFn,
+  DefaultRouter,
+} from './router';
 
 export interface CoreApplicationOptions {
   /**
@@ -78,7 +88,9 @@ export interface CoreApplicationOptions {
   logger?: ILogger;
 }
 
-export default class App {
+export default class App
+  extends AbstractRoutingParser<IRouteHandler, TDefaultRoutingFn>
+  implements IUWSRouting {
   private appOptions: CoreApplicationOptions = {};
 
   private logger: ILogger;
@@ -91,22 +103,7 @@ export default class App {
 
   private errorMiddlewares: TMiddlewareErrorHandler[] = [];
 
-  private checkHasAsync: (middleware: TMiddleware) => boolean;
-
-  private nativeHandlers?: (app: TemplatedApp) => void;
-
-  private routeMethods: Map<
-    string,
-    {
-      method: HttpMethod;
-      middlewares: TMiddleware[];
-      originPath: string;
-      parametersMap: ParametersMap;
-      hasAsync?: boolean;
-      path: string;
-      baseUrl?: string;
-    }
-  > = new Map();
+  protected checkHasAsync: (middleware: TMiddleware) => boolean;
 
   private renderMethod?: ((...args: any) => string) | null = null;
 
@@ -120,7 +117,10 @@ export default class App {
 
   private extName?: string;
 
+  private nativeHandlers?: TUWSHandlers;
+
   constructor(options: CoreApplicationOptions) {
+    super();
     this.appOptions = options || {
       useDefaultParser: true,
     };
@@ -134,104 +134,21 @@ export default class App {
     this.checkHasAsync = checkHasAsync(this.logger);
   }
 
-  use(path: string, router: Router): this;
-  use(path: string, router: IPrefixedRoutes): this;
-  use(
-    middleware: (req: Request, res: Response, next: NextFunction) => void
-  ): this;
-  use(middleware: TMiddlewareErrorHandler): this;
-  use(
-    pathOrMiddleware: any,
-    router?:
-      | Router
-      | (IPrefixedRoutes & IPrefixedRoutesSettings)
-      | IPrefixedRoutes
-  ): this {
-    if (typeof pathOrMiddleware === 'string') {
-      if (!Router) throw new TypeError('app.use(path, router) missing Router');
+  // eslint-disable-next-line class-methods-use-this
+  protected transform(args: unknown[]): [string, TMiddleware[]] {
+    const [path, ...middlewares] = args;
 
-      if (router instanceof Router) {
-        if (router.prefixRoutes) {
-          // Merge root path and router-set path
-          const mdw = router.prefixRoutes;
-
-          const mergedPath = pathOrMiddleware + mdw.prefix;
-
-          mdw.handlers.forEach((v, k) => {
-            this.add(k, mergedPath, v, pathOrMiddleware + mdw.prefix);
-          });
-
-          return this;
-        }
-
-        router.handlers.forEach((v, k) => {
-          this.add(
-            v.method,
-            `${pathOrMiddleware}${k}`,
-            v.middlewares,
-            pathOrMiddleware
-          );
-        });
-        return this;
-      }
-
-      if ((router as any)[PREFIXED_ROUTE]) {
-        // Merge root path and router-set path
-        const mergedPath =
-          pathOrMiddleware + (router as IPrefixedRoutesSettings).prefix;
-
-        (router as IPrefixedRoutesSettings).handlers.forEach((v, k) => {
-          this.add(k, mergedPath, v);
-        });
-
-        return this;
-      }
-    }
-
-    if (getParamNames(pathOrMiddleware as any).length === 4) {
-      this.errorMiddlewares.push(pathOrMiddleware as TMiddlewareErrorHandler);
-    } else this.globalMiddlewares.push(pathOrMiddleware as TMiddleware);
-
-    return this;
+    return [path as string, middlewares as TMiddleware[]];
   }
 
-  get(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.GET, path, middlewares);
-  }
-
-  post(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.POST, path, middlewares);
-  }
-
-  put(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.PUT, path, middlewares);
-  }
-
-  patch(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.PATCH, path, middlewares);
-  }
-
-  del(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.DEL, path, middlewares);
-  }
-
-  trace(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.TRACE, path, middlewares);
-  }
-
-  head(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.HEAD, path, middlewares);
-  }
-
-  options(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.OPTIONS, path, middlewares);
-  }
-
-  connect(path: string, ...middlewares: TMiddleware[]): this {
-    return this.add(HttpMethod.CONNECT, path, middlewares);
-  }
-
-  private add(
+  /**
+   * @override
+   * @param method
+   * @param path
+   * @param middlewares
+   * @param baseUrl
+   */
+  protected add(
     method: HttpMethod,
     path: string,
     middlewares: TMiddleware[],
@@ -241,14 +158,16 @@ export default class App {
       path.startsWith('/') ? path : `/${path}`
     );
 
-    const exist = this.routeMethods.get(method + basePath);
+    const exist = this.routeHandlers.get(method + basePath);
+
     if (exist)
       this.logger.warn(
         `There's already a route handler for ${method.toUpperCase()} ${cleanedPath} (original path: ${
           exist.originPath
         }), the existed one will be overrided!`
       );
-    this.routeMethods.set(method + basePath, {
+
+    this.routeHandlers.set(method + basePath, {
       method,
       middlewares,
       originPath: path,
@@ -257,6 +176,7 @@ export default class App {
       path: cleanedPath,
       baseUrl,
     });
+
     this.logger.info(
       'Map',
       method.toUpperCase(),
@@ -265,6 +185,57 @@ export default class App {
       method.toUpperCase(),
       cleanedPath
     );
+    return this;
+  }
+
+  useNativeHandlers(fn: TUWSHandlers): void {
+    this.nativeHandlers = fn;
+  }
+
+  use(path: string, router: IGetRouteHandlers): this;
+  use(
+    middleware: (req: Request, res: Response, next: NextFunction) => void
+  ): this;
+  use(middleware: TMiddlewareErrorHandler): this;
+  use(pathOrMiddleware: any, router?: IGetRouteHandlers): this {
+    if (typeof pathOrMiddleware === 'string') {
+      if (!router) throw new TypeError('app.use(path, router) missing Router');
+
+      if (!(router instanceof BaseRouter)) {
+        throw new TypeError(
+          'Router must be an instance of AbstractRoutingParser'
+        );
+      }
+
+      if (router instanceof DefaultRouter) {
+        // check for PrefixRouter ins BaseRouter
+        const { prefixRouter } = router;
+
+        if (prefixRouter && prefixRouter instanceof PrefixRouter)
+          prefixRouter
+            .getRouteHandlers()
+            .forEach(({ method, middlewares, path }, k) => {
+              this.add(method, `${pathOrMiddleware}/${path}`, middlewares, pathOrMiddleware);
+            });
+      }
+
+      const handlers = router.getRouteHandlers();
+      handlers.forEach(({ method, middlewares, path }, k) => {
+        this.add(
+          method,
+          `${pathOrMiddleware}/${path}`,
+          middlewares,
+          pathOrMiddleware
+        );
+      });
+
+      return this;
+    }
+
+    if (getParamNames(pathOrMiddleware as any).length === 4) {
+      this.errorMiddlewares.push(pathOrMiddleware as TMiddlewareErrorHandler);
+    } else this.globalMiddlewares.push(pathOrMiddleware as TMiddleware);
+
     return this;
   }
 
@@ -320,9 +291,7 @@ export default class App {
     }
 
     if (this.nativeHandlers) {
-      this.logger.warn(
-        'All uWS native handlers will be mounted before any ReXUWS router gets called'
-      );
+      this.logger.warn('All uWS native handlers will be mounted first');
       this.nativeHandlers(this.app);
     }
 
@@ -349,8 +318,21 @@ export default class App {
       (typeof useDefaultParser === 'boolean' && useDefaultParser) ||
       (typeof useDefaultParser === 'object' && useDefaultParser.cookieParser);
 
-    this.routeMethods.forEach((v, k) => {
-      const { method, middlewares, hasAsync, parametersMap, path, baseUrl } = v;
+    this.routeHandlers.forEach((v) => {
+      const {
+        method,
+        middlewares,
+        hasAsync: routeHasAsync,
+        parametersMap,
+        path,
+        baseUrl,
+      } = v;
+
+      let hasAsync = false;
+
+      if (routeHasAsync === LAZY_ASYNC_CHECKER) {
+        hasAsync = middlewares.some(this.checkHasAsync);
+      }
 
       if (!hasAnyMethodOnAll && method === HttpMethod.ANY && path === '/*') {
         hasAnyMethodOnAll = true;
@@ -646,10 +628,5 @@ export default class App {
     }
     us_listen_socket_close(this.token!);
     this.logger.print!('Thanks for using the app');
-  }
-
-  public useNativeHandlers(fn: (app: TemplatedApp) => void): this {
-    this.nativeHandlers = fn;
-    return this;
   }
 }

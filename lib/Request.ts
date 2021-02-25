@@ -106,11 +106,7 @@ export default class Request implements IRequest {
   private [FOR_EACH]: any;
 
   private parametersMap?: ParametersMap;
-
-  /**
-   * Return an array of Accepted media types
-   * ordered from highest quality to lowest.
-   */
+  
   public accepted: string[] = [];
 
   private _method?: HttpMethod;
