@@ -6,7 +6,8 @@ import { contentType } from 'mime-types';
 import path from 'path';
 import fsSync from 'fs';
 import { ILoggerProvider } from '../Logger';
-import Router from '../Route';
+// eslint-disable-next-line import/no-cycle
+import { DefaultRouter } from '../router';
 import { getMime } from '../utils/utils';
 import FileWatcher from '../utils/fileWatcher';
 
@@ -217,8 +218,8 @@ export class StaticServer {
     }
   }
 
-  static GetRouter(): Router {
-    const router = new Router();
+  static GetRouter(): DefaultRouter {
+    const router = new DefaultRouter();
     const setupPaths = Object.keys(this.Store);
 
     if (this.Watcher === true) {
