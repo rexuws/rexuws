@@ -92,47 +92,47 @@ export interface CoreApplicationOptions {
 export default class App
   extends AbstractRoutingParser<IRouteHandler, TDefaultRoutingFn>
   implements IUWSRouting, IUWSPublish {
-  private appOptions: CoreApplicationOptions = {};
+  #appOptions: CoreApplicationOptions = {};
 
-  private logger: ILogger;
+  #logger: ILogger;
 
-  private app?: TemplatedApp;
+  #app?: TemplatedApp;
 
-  private token?: us_listen_socket;
+  #token?: us_listen_socket;
 
-  private globalMiddlewares: TMiddleware[] = [];
+  #globalMiddlewares: TMiddleware[] = [];
 
-  private errorMiddlewares: TMiddlewareErrorHandler[] = [];
+  #errorMiddlewares: TMiddlewareErrorHandler[] = [];
 
-  protected checkHasAsync: (middleware: TMiddleware) => boolean;
+  #checkHasAsync: (middleware: TMiddleware) => boolean;
 
-  private renderMethod?: ((...args: any) => string) | null = null;
+  #renderMethod?: ((...args: any) => string) | null = null;
 
-  private compileMethod:
+  #compileMethod:
     | ((...args: any) => (...arg: any) => string)
     | null = null;
 
-  private compiledViewCaches: Record<string, (...args: any) => string> = {};
+  #compiledViewCaches: Record<string, (...args: any) => string> = {};
 
-  private viewDir?: string;
+  #viewDir?: string;
 
-  private extName?: string;
+  #extName?: string;
 
-  private nativeHandlers?: TUWSHandlers;
+  #nativeHandlers?: TUWSHandlers;
 
   constructor(options: CoreApplicationOptions) {
     super();
-    this.appOptions = options || {
+    this.#appOptions = options || {
       useDefaultParser: true,
     };
 
-    if (!this.appOptions.useDefaultParser) {
-      this.appOptions.useDefaultParser = true;
+    if (!this.#appOptions.useDefaultParser) {
+      this.#appOptions.useDefaultParser = true;
     }
 
-    this.logger = options.logger as ILogger;
+    this.#logger = options.logger as ILogger;
 
-    this.checkHasAsync = checkHasAsync(this.logger);
+    this.#checkHasAsync = checkHasAsync(this.#logger);
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -162,7 +162,7 @@ export default class App
     const exist = this.routeHandlers.get(method + basePath);
 
     if (exist)
-      this.logger.warn(
+      this.#logger.warn(
         `There's already a route handler for ${method.toUpperCase()} ${cleanedPath} (original path: ${
           exist.originPath
         }), the existed one will be overrided!`
@@ -173,12 +173,12 @@ export default class App
       middlewares,
       originPath: path,
       parametersMap,
-      hasAsync: middlewares.some(this.checkHasAsync),
+      hasAsync: middlewares.some(this.#checkHasAsync),
       path: cleanedPath,
       baseUrl,
     });
 
-    this.logger.info(
+    this.#logger.info(
       'Map',
       method.toUpperCase(),
       path,
@@ -190,7 +190,7 @@ export default class App
   }
 
   useNativeHandlers(fn: TUWSHandlers): void {
-    this.nativeHandlers = fn;
+    this.#nativeHandlers = fn;
   }
 
   publish(
@@ -199,7 +199,7 @@ export default class App
     isBinary?: boolean,
     compress?: boolean
   ): void {
-    this.app?.publish(topic, message, isBinary, compress);
+    this.#app?.publish(topic, message, isBinary, compress);
   }
 
   use(path: string, router: IGetRouteHandlers): this;
@@ -248,8 +248,8 @@ export default class App
     }
 
     if (getParamNames(pathOrMiddleware as any).length === 4) {
-      this.errorMiddlewares.push(pathOrMiddleware as TMiddlewareErrorHandler);
-    } else this.globalMiddlewares.push(pathOrMiddleware as TMiddleware);
+      this.#errorMiddlewares.push(pathOrMiddleware as TMiddlewareErrorHandler);
+    } else this.#globalMiddlewares.push(pathOrMiddleware as TMiddleware);
 
     return this;
   }
@@ -271,7 +271,7 @@ export default class App
 
     const argsCt = [...args];
     const givenLength = argsCt.length;
-    if (!this.app) {
+    if (!this.#app) {
       throw new Error("Couldn't find uWS instance");
     }
 
@@ -280,8 +280,8 @@ export default class App
       argsCt[givenLength - 1].constructor.name !== 'Function'
     ) {
       argsCt[givenLength] = (token: us_listen_socket) => {
-        this.token = token;
-        this.logger.print!(
+        this.#token = token;
+        this.#logger.print!(
           'Listening on',
           args[0],
           givenLength === 2 ? argsCt[1] : '',
@@ -289,31 +289,31 @@ export default class App
         );
       };
     }
-    (this.app as any).listen(...argsCt);
+    (this.#app as any).listen(...argsCt);
   }
 
   private initUWS(): void {
-    if (this.appOptions?.uWSConfigurations) {
-      this.app = uWSSSl(this.appOptions?.uWSConfigurations);
+    if (this.#appOptions?.uWSConfigurations) {
+      this.#app = uWSSSl(this.#appOptions?.uWSConfigurations);
     } else {
-      this.app = uWS();
+      this.#app = uWS();
     }
   }
 
   private initRoutes(): void {
-    if (!this.app) {
+    if (!this.#app) {
       throw new Error("Couldn't find uWS instance");
     }
 
-    if (this.nativeHandlers) {
-      this.logger.warn('All uWS native handlers will be mounted first');
-      this.nativeHandlers(this.app);
+    if (this.#nativeHandlers) {
+      this.#logger.warn('All uWS native handlers will be mounted first');
+      this.#nativeHandlers(this.#app);
     }
 
-    const globalAsync = this.globalMiddlewares.some(this.checkHasAsync);
+    const globalAsync = this.#globalMiddlewares.some(this.#checkHasAsync);
 
     // Push default ErrorMiddleware
-    this.errorMiddlewares.push((err, req, res) => {
+    this.#errorMiddlewares.push((err, req, res) => {
       if (err instanceof Error) {
         res.status(500);
         const message = `${err.stack}`;
@@ -327,7 +327,7 @@ export default class App
 
     let hasAnyMethodOnAll = false;
 
-    const { useDefaultParser } = this.appOptions;
+    const { useDefaultParser } = this.#appOptions;
 
     const useDefaultCookieParser =
       (typeof useDefaultParser === 'boolean' && useDefaultParser) ||
@@ -346,16 +346,16 @@ export default class App
       let hasAsync = false;
 
       if (routeHasAsync === LAZY_ASYNC_CHECKER) {
-        hasAsync = middlewares.some(this.checkHasAsync);
+        hasAsync = middlewares.some(this.#checkHasAsync);
       }
 
       if (!hasAnyMethodOnAll && method === HttpMethod.ANY && path === '/*') {
         hasAnyMethodOnAll = true;
       }
 
-      const mergedMiddlewares = [...this.globalMiddlewares, ...middlewares];
+      const mergedMiddlewares = [...this.#globalMiddlewares, ...middlewares];
 
-      if (!this.app) {
+      if (!this.#app) {
         throw new Error("Couldn't find uWS instance");
       }
 
@@ -376,7 +376,7 @@ export default class App
             mergedMiddlewares.unshift(bodyParser);
           }
         }
-        this.app[method](path, (_res, _req) => {
+        this.#app[method](path, (_res, _req) => {
           const req = new Request(_req, {
             paramsMap: parametersMap,
             forceInit: true,
@@ -384,7 +384,7 @@ export default class App
             baseUrl,
           });
 
-          const res = new Response(_res, { hasAsync: true }, this.logger);
+          const res = new Response(_res, { hasAsync: true }, this.#logger);
 
           req[FROM_RES] = {
             getProxiedRemoteAddressAsText: res[GET_PROXIED_ADDR],
@@ -405,13 +405,13 @@ export default class App
           });
         });
       } else {
-        this.app[method](path, (_res, _req) => {
+        this.#app[method](path, (_res, _req) => {
           const res = new Response(
             _res,
             {
               hasAsync: globalAsync || hasAsync,
             },
-            this.logger
+            this.#logger
           );
           const req = new Request(_req, {
             paramsMap: parametersMap,
@@ -445,7 +445,7 @@ export default class App
     // Add not found handler
     if (!hasAnyMethodOnAll) {
       const notFoundMiddlewares: TMiddleware[] = [
-        ...this.globalMiddlewares,
+        ...this.#globalMiddlewares,
         (req: any, res: any) => {
           res
             .status(404)
@@ -454,13 +454,13 @@ export default class App
         },
       ];
 
-      this.app.any('/*', (_res, _req) => {
+      this.#app.any('/*', (_res, _req) => {
         const res = new Response(
           _res,
           {
             hasAsync: globalAsync,
           },
-          this.logger
+          this.#logger
         );
         const req = new Request(_req, {
           paramsMap: [],
@@ -491,11 +491,11 @@ export default class App
     return (error) => {
       if (error) {
         if (errorIdx >= middlewares.length) return;
-        this.errorMiddlewares[errorIdx](
+        this.#errorMiddlewares[errorIdx](
           error,
           req,
           res,
-          this.nextHandler(-1, req, res, this.errorMiddlewares, errorIdx + 1)
+          this.nextHandler(-1, req, res, this.#errorMiddlewares, errorIdx + 1)
         );
 
         return;
@@ -516,8 +516,8 @@ export default class App
     options: Record<string, any> | null,
     callback: (err: Error | null, html?: string) => void
   ): any {
-    if (!this.viewDir) {
-      this.logger.warn(
+    if (!this.#viewDir) {
+      this.#logger.warn(
         'No default view directory or renderMethod or compileMethod was found. Please configurate via app.setView(path, engineOptions)'
       );
       return callback(
@@ -525,10 +525,10 @@ export default class App
       );
     }
 
-    const viewFile = pathMethod.join(this.viewDir, name + this.extName);
+    const viewFile = pathMethod.join(this.#viewDir, name + this.#extName);
 
-    if (this.compileMethod) {
-      const cacheView = this.compiledViewCaches[name];
+    if (this.#compileMethod) {
+      const cacheView = this.#compiledViewCaches[name];
       if (cacheView) {
         try {
           const html = cacheView(options);
@@ -541,8 +541,8 @@ export default class App
       try {
         // Read file from disk
         const fileContent = fs.readFileSync(viewFile, 'utf-8');
-        const compiled = this.compileMethod(fileContent, options);
-        this.compiledViewCaches[name] = compiled;
+        const compiled = this.#compileMethod(fileContent, options);
+        this.#compiledViewCaches[name] = compiled;
         return callback(null, compiled(options));
       } catch (err) {
         return callback(err);
@@ -550,11 +550,11 @@ export default class App
     }
 
     // Handle renderMethod()
-    if (this.renderMethod) {
-      return this.renderMethod(viewFile, options, callback);
+    if (this.#renderMethod) {
+      return this.#renderMethod(viewFile, options, callback);
     }
 
-    this.logger.warn(
+    this.#logger.warn(
       'No default renderMethod or compileMethod was found. Please set up via app.setView(path, engineOptions)'
     );
     return callback(
@@ -594,7 +594,7 @@ export default class App
     if (typeof viewPath !== 'string')
       throw new TypeError('path must be a string');
 
-    this.viewDir = viewPath;
+    this.#viewDir = viewPath;
 
     if (typeof engine !== 'object') throw new TypeError('Missing engine');
 
@@ -604,13 +604,13 @@ export default class App
       throw new TypeError('extName must be a string');
     }
 
-    this.extName = extName.startsWith('.') ? extName : `.${extName}`;
+    this.#extName = extName.startsWith('.') ? extName : `.${extName}`;
 
     if (renderMethod) {
       if (renderMethod.constructor.name !== 'Function')
         throw new TypeError('renderMethod must be a function');
 
-      this.renderMethod = renderMethod;
+      this.#renderMethod = renderMethod;
       return this;
     }
 
@@ -618,7 +618,7 @@ export default class App
       if (compileMethod.constructor.name !== 'Function')
         throw new TypeError('renderMethod must be a function');
 
-      this.compileMethod = compileMethod;
+      this.#compileMethod = compileMethod;
       return this;
     }
 
@@ -628,20 +628,20 @@ export default class App
   }
 
   public config(options: CoreApplicationOptions): this {
-    if (!this.appOptions) {
-      this.appOptions = options;
+    if (!this.#appOptions) {
+      this.#appOptions = options;
       return this;
     }
 
-    this.appOptions = { ...this.appOptions, ...options };
+    this.#appOptions = { ...this.#appOptions, ...options };
     return this;
   }
 
   public close(): void {
-    if (!this.app) {
+    if (!this.#app) {
       throw new Error("uWS App hasn't been instanciated");
     }
-    us_listen_socket_close(this.token!);
-    this.logger.print!('Thanks for using the app');
+    us_listen_socket_close(this.#token!);
+    this.#logger.print!('Thanks for using the app');
   }
 }
