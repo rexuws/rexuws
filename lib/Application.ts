@@ -48,6 +48,7 @@ import {
   IGetRouteHandlers,
   TDefaultRoutingFn,
   DefaultRouter,
+  IUWSPublish,
 } from './router';
 
 export interface CoreApplicationOptions {
@@ -90,7 +91,7 @@ export interface CoreApplicationOptions {
 
 export default class App
   extends AbstractRoutingParser<IRouteHandler, TDefaultRoutingFn>
-  implements IUWSRouting {
+  implements IUWSRouting, IUWSPublish {
   private appOptions: CoreApplicationOptions = {};
 
   private logger: ILogger;
@@ -192,6 +193,15 @@ export default class App
     this.nativeHandlers = fn;
   }
 
+  publish(
+    topic: RecognizedString,
+    message: RecognizedString,
+    isBinary?: boolean,
+    compress?: boolean
+  ): void {
+    this.app?.publish(topic, message, isBinary, compress);
+  }
+
   use(path: string, router: IGetRouteHandlers): this;
   use(
     middleware: (req: Request, res: Response, next: NextFunction) => void
@@ -215,7 +225,12 @@ export default class App
           prefixRouter
             .getRouteHandlers()
             .forEach(({ method, middlewares, path }, k) => {
-              this.add(method, `${pathOrMiddleware}/${path}`, middlewares, pathOrMiddleware);
+              this.add(
+                method,
+                `${pathOrMiddleware}/${path}`,
+                middlewares,
+                pathOrMiddleware
+              );
             });
       }
 

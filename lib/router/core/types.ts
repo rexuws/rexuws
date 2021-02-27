@@ -1,4 +1,4 @@
-import { TemplatedApp } from 'uWebSockets.js';
+import { TemplatedApp, RecognizedString } from 'uWebSockets.js';
 import { TMiddleware } from '../../middlewares';
 import { HttpMethod } from '../../utils/types';
 import { ParametersMap } from '../../Request';
@@ -35,4 +35,13 @@ export type TUWSHandlers = (uws: TemplatedApp) => void;
 
 export interface IUWSRouting {
   useNativeHandlers(fn: TUWSHandlers): void;
+}
+
+export interface IUWSPublish {
+  publish(
+    topic: RecognizedString,
+    message: RecognizedString,
+    isBinary?: boolean,
+    compress?: boolean
+  ): void;
 }
