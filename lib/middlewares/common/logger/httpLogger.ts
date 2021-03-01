@@ -1,8 +1,8 @@
 /* eslint-disable import/prefer-default-export */
-import Logger, { ILoggerProvider } from '../Logger';
-import { IRequest, IResponse } from '../utils/types';
-import { NextFunction } from './types';
-import { colorConsoleNoTimestamp } from '../utils';
+import Logger, { ILoggerProvider } from '../../../Logger';
+import { IRequest, IResponse } from '../../../utils/types';
+import { NextFunction } from '../../core';
+import { colorConsoleNoTimestamp } from '../../../utils';
 
 // TODO add stream option
 /**

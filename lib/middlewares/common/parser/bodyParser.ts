@@ -1,6 +1,6 @@
 import qs from 'qs';
-import { IRequest, IResponse } from '../utils/types';
-import { NextFunction } from './types';
+import { IRequest, IResponse } from '../../../utils/types';
+import { NextFunction } from '../../core/types';
 
 export const parse = (
   ct: string,

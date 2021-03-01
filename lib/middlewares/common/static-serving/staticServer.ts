@@ -5,11 +5,11 @@ import fs from 'fs/promises';
 import { contentType } from 'mime-types';
 import path from 'path';
 import fsSync from 'fs';
-import { ILoggerProvider } from '../Logger';
+import { ILoggerProvider } from '../../../Logger';
 // eslint-disable-next-line import/no-cycle
-import { DefaultRouter } from '../router';
-import { getMime } from '../utils/utils';
-import FileWatcher from '../utils/fileWatcher';
+import { DefaultRouter } from '../../../router';
+import { getMime } from '../../../utils/utils';
+import FileWatcher from '../../../utils/fileWatcher';
 
 export interface IServeStaticOptions {
   [key: string]: any;
