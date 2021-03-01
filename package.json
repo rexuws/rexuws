@@ -1,6 +1,6 @@
 {
   "name": "rexuws",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "An express-like framework built on top of uWebsocket.js aims at simple codebase and high performance",
   "main": "build/index.js",
   "types": "build/index.d.ts",
