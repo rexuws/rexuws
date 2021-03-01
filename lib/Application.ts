@@ -92,8 +92,16 @@ export interface CoreApplicationOptions {
    * Attach abort handler to all router if forceAsync is true
    *
    * Should be `true` when using with NestJS
+   * @default false
    */
   forceAsync?: boolean;
+
+  /**
+   * Return appication/json on default middleware
+   *
+   * @default false
+   */
+  preferJSON?: boolean;
 }
 
 export default class App
