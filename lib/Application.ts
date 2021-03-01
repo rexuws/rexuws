@@ -19,14 +19,14 @@ import {
   bodyParser,
   multipartParser,
   IMultipartParserOptions,
+  notFoundMiddleware,
+  errorMiddleware,
 } from './middlewares';
 import { HttpMethod } from './utils/types';
 import {
   getParamNames,
-  toHtml,
   readBody,
   hasAsync as checkHasAsync,
-  notFoundHtml,
   extractParamsPath,
 } from './utils/utils';
 import { ILogger } from './Logger';
@@ -237,7 +237,7 @@ export default class App
         if (prefixRouter && prefixRouter instanceof PrefixRouter)
           prefixRouter
             .getRouteHandlers()
-            .forEach(({ method, middlewares, path }, k) => {
+            .forEach(({ method, middlewares, path }) => {
               this.add(
                 method,
                 `${pathOrMiddleware}/${path}`,
@@ -248,7 +248,7 @@ export default class App
       }
 
       const handlers = router.getRouteHandlers();
-      handlers.forEach(({ method, middlewares, path }, k) => {
+      handlers.forEach(({ method, middlewares, path }) => {
         this.add(
           method,
           `${pathOrMiddleware}/${path}`,
@@ -328,17 +328,13 @@ export default class App
       this.#globalMiddlewares.some(this.#checkHasAsync);
 
     // Push default ErrorMiddleware
-    this.#errorMiddlewares.push((err, req, res) => {
-      if (err instanceof Error) {
-        res.status(500);
-        const message = `${err.stack}`;
-        res.send(toHtml(message));
-      }
-      if (typeof err === 'string') {
-        res.status(404);
-        res.send(toHtml(err));
-      }
-    });
+    this.#errorMiddlewares.push(
+      errorMiddleware({
+        logMethod: 'error',
+        logger: this.#logger,
+        preferJSON: !!this.#appOptions.preferJSON,
+      })
+    );
 
     let hasAnyMethodOnAll = false;
 
@@ -461,12 +457,11 @@ export default class App
     if (!hasAnyMethodOnAll) {
       const notFoundMiddlewares: TMiddleware[] = [
         ...this.#globalMiddlewares,
-        (req: any, res: any) => {
-          res
-            .status(404)
-            .set('Content-Type', 'text/html; charset=utf-8')
-            .end(notFoundHtml(req.method, req.url));
-        },
+        notFoundMiddleware({
+          logMethod: 'info',
+          logger: this.#logger,
+          preferJSON: !!this.#appOptions.preferJSON,
+        }),
       ];
 
       this.#app.any('/*', (_res, _req) => {

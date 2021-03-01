@@ -108,7 +108,7 @@ export default class Response implements IResponse {
   public [FROM_REQ]: TRequestExposedMethods;
 
   public getHeader: (field: string) => string | undefined;
-  
+
   public set: (field: Record<string, string> | string, val?: string) => this;
 
   public header: (field: Record<string, string> | string, val?: string) => this;
@@ -177,6 +177,15 @@ export default class Response implements IResponse {
     }
 
     this.attachAbortHandler();
+  }
+
+  // GETTER
+  get preStatus(): number | undefined {
+    return this._statusCode ? +this._statusCode : undefined;
+  }
+
+  get preHeader(): Map<string, string> {
+    return this._headers;
   }
 
   // ***************************************************************
