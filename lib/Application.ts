@@ -87,6 +87,13 @@ export interface CoreApplicationOptions {
    * Set logging options
    */
   logger?: ILogger;
+
+  /**
+   * Attach abort handler to all router if forceAsync is true
+   *
+   * Should be `true` when using with NestJS
+   */
+  forceAsync?: boolean;
 }
 
 export default class App
@@ -108,9 +115,7 @@ export default class App
 
   #renderMethod?: ((...args: any) => string) | null = null;
 
-  #compileMethod:
-    | ((...args: any) => (...arg: any) => string)
-    | null = null;
+  #compileMethod: ((...args: any) => (...arg: any) => string) | null = null;
 
   #compiledViewCaches: Record<string, (...args: any) => string> = {};
 
@@ -310,7 +315,9 @@ export default class App
       this.#nativeHandlers(this.#app);
     }
 
-    const globalAsync = this.#globalMiddlewares.some(this.#checkHasAsync);
+    const globalAsync =
+      this.#appOptions.forceAsync ||
+      this.#globalMiddlewares.some(this.#checkHasAsync);
 
     // Push default ErrorMiddleware
     this.#errorMiddlewares.push((err, req, res) => {
