@@ -1,6 +1,6 @@
 import * as uWS from 'uWebSockets.js';
-import { HttpMethod, IRequest, IResponse } from '../utils/types';
-import { NextFunction } from './types';
+import { HttpMethod, IRequest, IResponse } from '../../../utils/types';
+import { NextFunction } from '../../core/types';
 import { parse } from './bodyParser';
 
 export interface IMultipartParserOptions {
@@ -24,7 +24,7 @@ export interface IMultipartParserOptions {
 
 export const multipartParser = (
   req: IRequest,
-  res: IResponse,
+  _: IResponse,
   next: NextFunction
 ): void => {
   const ct = req.header('content-type');
