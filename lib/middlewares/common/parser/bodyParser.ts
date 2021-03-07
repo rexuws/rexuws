@@ -6,7 +6,7 @@ export const parse = (
   ct: string,
   raw: Buffer
 ): Record<string, string> | string | Buffer => {
-  if (ct === 'application/json' || ct === 'text/json') {
+  if (ct.startsWith('application/json') || ct === 'text/json') {
     const json = JSON.parse(raw as any);
     return json;
   }
