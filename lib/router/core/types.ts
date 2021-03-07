@@ -11,7 +11,7 @@ export interface IRouteBaseHandler {
 
 export interface IRouteHandler extends IRouteBaseHandler {
   parametersMap: ParametersMap;
-  hasAsync?: boolean | symbol;
+  hasAsync?: boolean;
   path: string;
   originPath: string;
   baseUrl?: string;
