@@ -36,7 +36,6 @@ import {
   GET_PROXIED_ADDR,
   FROM_REQ,
   FROM_APP,
-  LAZY_ASYNC_CHECKER,
 } from './utils/symbol';
 import {
   AbstractRoutingParser,
