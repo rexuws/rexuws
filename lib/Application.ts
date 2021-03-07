@@ -36,7 +36,6 @@ import {
   GET_PROXIED_ADDR,
   FROM_REQ,
   FROM_APP,
-  LAZY_ASYNC_CHECKER,
 } from './utils/symbol';
 import {
   AbstractRoutingParser,
@@ -345,20 +344,7 @@ export default class App
       (typeof useDefaultParser === 'object' && useDefaultParser.cookieParser);
 
     this.routeHandlers.forEach((v) => {
-      const {
-        method,
-        middlewares,
-        hasAsync: routeHasAsync,
-        parametersMap,
-        path,
-        baseUrl,
-      } = v;
-
-      let hasAsync = false;
-
-      if (routeHasAsync === LAZY_ASYNC_CHECKER) {
-        hasAsync = middlewares.some(this.#checkHasAsync);
-      }
+      const { method, middlewares, hasAsync, parametersMap, path, baseUrl } = v;
 
       if (!hasAnyMethodOnAll && method === HttpMethod.ANY && path === '/*') {
         hasAnyMethodOnAll = true;
