@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/vmtrandev/rexuws.git"
+    "url": "git+ssh://git@github.com/rexuws/rexuws.git"
   },
   "keywords": [
     "nodejs",
@@ -25,9 +25,9 @@
   "author": "VMTran",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/vmtrandev/rexuws/issues"
+    "url": "https://github.com/rexuws/rexuws/issues"
   },
-  "homepage": "https://github.com/vmtrandev/rexuws#readme",
+  "homepage": "https://github.com/rexuws/rexuws#readme",
   "devDependencies": {
     "@types/content-disposition": "^0.5.3",
     "@types/content-type": "^1.1.3",

@@ -15,7 +15,7 @@
     "sourceMap": false,
     "allowJs": false,
     "strict": true,
-    "strictNullChecks": false
+    "strictNullChecks": false,
   },
   "exclude": ["../node_modules", "./**/*.spec.ts"]
 }

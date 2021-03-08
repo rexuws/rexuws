@@ -1,11 +1,11 @@
 {
   "name": "@rexuws/nestjs",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "ReXUWS Http Adapter and WS Adapter for NestJS",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vmtrandev/rexuws.git"
+    "url": "git+https://github.com/rexuws/rexuws.git"
   },
   "publishConfig": {
     "access": "public"
@@ -22,11 +22,14 @@
   "author": "VMTran",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/vmtrandev/rexuws/issues"
+    "url": "https://github.com/rexuws/rexuws/issues"
   },
-  "homepage": "https://github.com/vmtrandev/rexuws#readme",
+  "homepage": "https://github.com/rexuws/rexuws#readme",
   "dependencies": {
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "reflect-metadata": "^0.1.13",
+    "rexuws": "^1.1.2",
+    "rxjs": "^6.6.6"
   },
   "peerDependencies": {
     "rexuws": "^1.1.1",
@@ -36,6 +39,10 @@
     "rxjs": "^6.0.0"
   },
   "devDependencies": {
+    "@nestjs/common": "^7.6.13",
+    "@nestjs/core": "^7.6.13",
+    "@nestjs/websockets": "^7.6.13",
     "@types/cors": "^2.8.9"
-  }
+  },
+  "files": ["build/**/*"]
 }
