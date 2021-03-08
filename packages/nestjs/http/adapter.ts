@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import { RequestMethod, INestApplication } from "@nestjs/common";
-import { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
-import { NestApplicationOptions } from "@nestjs/common/interfaces/nest-application-options.interface";
-import { isNil, isObject } from "@nestjs/common/utils/shared.utils";
-import { AbstractHttpAdapter } from "@nestjs/core/adapters/http-adapter";
-import { RouterMethodFactory } from "@nestjs/core/helpers/router-method-factory";
-import cors from "cors";
-import rex, { middlewares, getLoggerInstance } from "rexuws";
-import { IServeStaticOptions } from "rexuws/build/lib/middlewares";
-import { IRequest, IResponse } from "rexuws/build/lib/utils/types";
-import Application from "rexuws/build/lib/Application";
+import { RequestMethod, INestApplication } from '@nestjs/common';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { NestApplicationOptions } from '@nestjs/common/interfaces/nest-application-options.interface';
+import { isNil, isObject } from '@nestjs/common/utils/shared.utils';
+import { AbstractHttpAdapter } from '@nestjs/core/adapters/http-adapter';
+import { RouterMethodFactory } from '@nestjs/core/helpers/router-method-factory';
+import * as cors from 'cors';
+import rex, { middlewares, getLoggerInstance } from 'rexuws';
+import { IServeStaticOptions } from 'rexuws/build/lib/middlewares';
+import { IRequest, IResponse } from 'rexuws/build/lib/utils/types';
+import Application from 'rexuws/build/lib/Application';
 
 export default class ReXHttpAdapter extends AbstractHttpAdapter {
   private readonly routerMethodFactory = new RouterMethodFactory();
@@ -54,7 +54,7 @@ export default class ReXHttpAdapter extends AbstractHttpAdapter {
 
   public setViewEngine(engine: any) {
     getLoggerInstance()!.warn(
-      "Please use setRexViewEngine() instead or call setView() directly from ReX instance"
+      'Please use setRexViewEngine() instead or call setView() directly from ReX instance'
     );
   }
 
@@ -94,13 +94,9 @@ export default class ReXHttpAdapter extends AbstractHttpAdapter {
   public useStaticAssets(path: string, options: IServeStaticOptions) {
     middlewares.StaticServer.Config(options);
     this.use(
-      options.prefix ? options.prefix : "/",
+      options.prefix ? options.prefix : '/',
       middlewares.StaticServer.GetRouter()
     );
-  }
-
-  public something() {
-    this.instance as Application;
   }
 
   public getRequestHostname(request: IRequest): string {
@@ -138,7 +134,7 @@ export default class ReXHttpAdapter extends AbstractHttpAdapter {
   }
 
   public getType(): string {
-    return "rex";
+    return 'rex';
   }
 
   public delete(...args: any) {
@@ -148,25 +144,24 @@ export default class ReXHttpAdapter extends AbstractHttpAdapter {
   public use(...args: any[]) {
     if (args.length === 1) {
       if (
-        args[0].toString().replace(/\n/g, "").replace(/\s\s+/g, " ") ===
+        args[0].toString().replace(/\n/g, '').replace(/\s\s+/g, ' ') ===
         defaultMdw
       ) {
         getLoggerInstance()!.warn(
-          "The first Default NestJS Middlewares has been disabled"
+          'The first Default NestJS Middlewares has been disabled'
         );
         return;
       }
       if (
-        args[0].toString().replace(/\n/g, "").replace(/\s\s+/g, " ") ===
+        args[0].toString().replace(/\n/g, '').replace(/\s\s+/g, ' ') ===
         defaultErr
       ) {
         getLoggerInstance()!.warn(
-          "The Default NestJS Error Middlewares has been disabled"
+          'The Default NestJS Error Middlewares has been disabled'
         );
         return;
       }
     }
-    // getLoggerInstance().warn('Please use middleware directly via the ReX app');
     this.instance.use(...args);
   }
 }
