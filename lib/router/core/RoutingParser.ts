@@ -51,4 +51,12 @@ export default abstract class AbstractRoutingParser<
   connect(...args: Parameters<U>): this {
     return this.add(HttpMethod.CONNECT, ...this.transform(args));
   }
+
+  any(...args: Parameters<U>): this {
+    return this.add(HttpMethod.ANY, ...this.transform(args));
+  }
+
+  all(...args: Parameters<U>): this {
+    return this.add(HttpMethod.ANY, ...this.transform(args));
+  }
 }
