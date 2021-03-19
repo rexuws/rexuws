@@ -125,6 +125,8 @@ export default class Response implements IResponse {
 
   private [READ_STREAM]?: ReadStream;
 
+  private _cookies: string[] = [];
+
   constructor(res: HttpResponse, opts?: IResponseOptions, logger?: ILogger) {
     this.originalRes = res;
     this[WRITE_HEADER] = this.originalRes.writeHeader.bind(res);
@@ -242,9 +244,16 @@ export default class Response implements IResponse {
 
   private setHeaderAndStatusByNativeMethod() {
     if (this._statusCode) this[WRITE_STATUS](this._statusCode);
+
     this._headers.forEach((value, key) => {
       this[WRITE_HEADER](key, value);
     });
+
+    if (this._cookies.length) {
+      this._cookies.forEach((cookie) => {
+        this[WRITE_HEADER]('set-cookie', cookie);
+      });
+    }
   }
 
   private setHeader(
@@ -583,8 +592,7 @@ export default class Response implements IResponse {
       opts.path = '/';
     }
 
-    // this.app
-    this._headers.set('Set-Cookie', serialize(name, str, opts));
+    this._cookies.push(serialize(name, str, opts));
 
     return this;
   }
