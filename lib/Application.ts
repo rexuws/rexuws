@@ -85,7 +85,7 @@ export interface CoreApplicationOptions {
   /**
    * Set logging options
    */
-  logger?: ILogger;
+  logger: ILogger;
 
   /**
    * Attach abort handler to all router if forceAsync is true
@@ -106,7 +106,7 @@ export interface CoreApplicationOptions {
 export default class App
   extends AbstractRoutingParser<IRouteHandler, TDefaultRoutingFn>
   implements IUWSRouting, IUWSPublish {
-  #appOptions: CoreApplicationOptions = {};
+  #appOptions: CoreApplicationOptions;
 
   #logger: ILogger;
 
@@ -134,9 +134,7 @@ export default class App
 
   constructor(options: CoreApplicationOptions) {
     super();
-    this.#appOptions = options || {
-      useDefaultParser: true,
-    };
+    this.#appOptions = options;
 
     if (!this.#appOptions.useDefaultParser) {
       this.#appOptions.useDefaultParser = true;
@@ -147,13 +145,6 @@ export default class App
     this.#checkHasAsync = checkHasAsync(this.#logger);
   }
 
-  // eslint-disable-next-line class-methods-use-this
-  protected transform(args: unknown[]): [string, TMiddleware[]] {
-    const [path, ...middlewares] = args;
-
-    return [path as string, middlewares as TMiddleware[]];
-  }
-
   /**
    * @override
    * @param method
@@ -161,12 +152,11 @@ export default class App
    * @param middlewares
    * @param baseUrl
    */
-  protected add(
-    method: HttpMethod,
-    path: string,
-    middlewares: TMiddleware[],
-    baseUrl?: string
-  ): this {
+  protected add(method: HttpMethod, args: unknown[]): this {
+    const [path, ...middlewares] = args as [
+      string,
+      TMiddleware,
+    ];
     const { path: cleanedPath, parametersMap, basePath } = extractParamsPath(
       path.startsWith('/') ? path : `/${path}`
     );
@@ -187,7 +177,7 @@ export default class App
       parametersMap,
       hasAsync: middlewares.some(this.#checkHasAsync),
       path: cleanedPath,
-      baseUrl,
+      // baseUrl,
     });
 
     this.#logger.info(
@@ -231,29 +221,27 @@ export default class App
 
       if (router instanceof DefaultRouter) {
         // check for PrefixRouter ins BaseRouter
-        const { prefixRouter } = router;
+        const prefixRouter = router.getPrefixRouter();
 
         if (prefixRouter && prefixRouter instanceof PrefixRouter)
           prefixRouter
             .getRouteHandlers()
             .forEach(({ method, middlewares, path }) => {
-              this.add(
-                method,
+              this.add(method, [
                 `${pathOrMiddleware}/${path}`,
                 middlewares,
-                pathOrMiddleware
-              );
+                pathOrMiddleware,
+              ]);
             });
       }
 
       const handlers = router.getRouteHandlers();
       handlers.forEach(({ method, middlewares, path }) => {
-        this.add(
-          method,
+        this.add(method, [
           `${pathOrMiddleware}/${path}`,
           middlewares,
-          pathOrMiddleware
-        );
+          pathOrMiddleware,
+        ]);
       });
 
       return this;

@@ -1,4 +1,5 @@
 import { TemplatedApp, RecognizedString } from 'uWebSockets.js';
+// eslint-disable-next-line import/no-cycle
 import { TMiddleware } from '../../middlewares';
 import { HttpMethod } from '../../utils/types';
 import { ParametersMap } from '../../Request';
@@ -27,6 +28,8 @@ export interface IRouting<T extends Ctor> {
   head(...args: Parameters<T>): this;
   options(...args: Parameters<T>): this;
   connect(...args: Parameters<T>): this;
+  any(...args: Parameters<T>): this;
+  all(...args: Parameters<T>): this;
 }
 
 export type Ctor = (...args: any[]) => any;
