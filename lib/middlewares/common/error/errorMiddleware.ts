@@ -25,12 +25,13 @@ export default function errorMiddleware(
         if (err instanceof Error) {
           res.status(500);
           const message = `${err.stack}`;
-          res.send(toHtml(message));
+          return res.send(toHtml(message));
         }
         if (typeof err === 'string') {
-          res.status(404);
-          res.send(toHtml(err));
+          res.status(500);
+          return res.send(toHtml(err));
         }
+        return res.status(500).send(toHtml(JSON.stringify(err)));
       };
   }
 }
