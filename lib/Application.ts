@@ -153,10 +153,7 @@ export default class App
    * @param baseUrl
    */
   protected add(method: HttpMethod, args: unknown[]): this {
-    const [path, ...middlewares] = args as [
-      string,
-      TMiddleware,
-    ];
+    const [path, ...middlewares] = args as [string, TMiddleware];
     const { path: cleanedPath, parametersMap, basePath } = extractParamsPath(
       path.startsWith('/') ? path : `/${path}`
     );
@@ -381,7 +378,7 @@ export default class App
           };
 
           readBody(res.originalRes, (raw) => {
-            req.raw = raw;
+            req.raw = raw.byteLength === 0 ? undefined : raw;
             mergedMiddlewares[0](
               req,
               res,
