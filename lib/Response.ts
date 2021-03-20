@@ -114,9 +114,15 @@ export default class Response implements IResponse {
 
   public getHeader: (field: string) => string | undefined;
 
-  public set: (field: Record<string, string> | string, val?: string) => this;
+  public set: (
+    field: Record<string, string | string[]> | string,
+    val?: string
+  ) => this;
 
-  public header: (field: Record<string, string> | string, val?: string) => this;
+  public header: (
+    field: Record<string, string | string[]> | string,
+    val?: string
+  ) => this;
 
   public contentType: (type: string) => this;
 
