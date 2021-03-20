@@ -316,10 +316,10 @@ export interface IResponse {
    *
    * Aliased as `res.header()`.
    */
-  set(field: any): this;
+  set(field: Record<string, string | string[]>): this;
   set(field: string, value?: string | string[]): this;
 
-  header(field: any): this;
+  header(field: Record<string, string | string[]>): this;
   header(field: string, value?: string | string[]): this;
 
   /**

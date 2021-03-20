@@ -59,6 +59,11 @@ export interface IResponseOptions {
   maxReadFileSize?: number;
 }
 
+export interface IResponseHeader {
+  name: string;
+  value: string;
+}
+
 const CONTENT_TYPE = {
   JSON: 'application/json; charset=utf-8',
   PLAIN: 'text/plain; charset=utf-8',
@@ -73,7 +78,7 @@ export default class Response implements IResponse {
 
   private _statusCode?: string;
 
-  private _headers = new Map<string, string>();
+  private _headers: IResponseHeader[] = [];
 
   public locals: Record<string, any> = {};
 
@@ -186,7 +191,7 @@ export default class Response implements IResponse {
     return this._statusCode ? +this._statusCode : undefined;
   }
 
-  get preHeader(): Map<string, string> {
+  get preHeader(): IResponseHeader[] {
     return this._headers;
   }
 
@@ -245,33 +250,56 @@ export default class Response implements IResponse {
   private setHeaderAndStatusByNativeMethod() {
     if (this._statusCode) this[WRITE_STATUS](this._statusCode);
 
-    this._headers.forEach((value, key) => {
-      this[WRITE_HEADER](key, value);
-    });
-
-    if (this._cookies.length) {
-      this._cookies.forEach((cookie) => {
-        this[WRITE_HEADER]('set-cookie', cookie);
-      });
+    for (let i = 0; i < this._headers.length; i++) {
+      this[WRITE_HEADER](this._headers[i].name, this._headers[i].value);
     }
   }
 
   private setHeader(
-    field: Record<string, string> | string,
-    val?: string
+    field: Record<string, string | string[]> | string,
+    val?: string | string[]
   ): this {
     if (typeof field === 'string') {
-      if (field.toLowerCase() === 'content-type' && Array.isArray(val)) {
+      const lowerCaseField = field.toLowerCase();
+      if (lowerCaseField === 'content-type' && Array.isArray(val)) {
         throw new TypeError('Content-Type cannot be set to an Array');
       }
 
-      if (val) this._headers.set(field, val);
+      if (typeof val === 'string') {
+        this._headers.push({
+          name: lowerCaseField,
+          value: val,
+        });
+        return this;
+      }
 
+      if (Array.isArray(val)) {
+        val.forEach((v) => {
+          this._headers.push({
+            name: lowerCaseField,
+            value: v,
+          });
+        });
+        return this;
+      }
       return this;
     }
 
-    Object.entries(field).forEach(([value, key]) => {
-      this._headers.set(key, value);
+    Object.entries(field).forEach(([key, value]) => {
+      const lowerCaseKey = key.toLowerCase();
+
+      if (typeof value === 'string') {
+        this._headers.push({ name: lowerCaseKey, value });
+        return;
+      }
+
+      if (Array.isArray(value))
+        value.forEach((v) => {
+          this._headers.push({
+            name: lowerCaseKey,
+            value: v,
+          });
+        });
     });
 
     return this;
@@ -284,16 +312,11 @@ export default class Response implements IResponse {
   }
 
   public get(field: string): string | undefined {
-    return this._headers.get(field);
+    return this._headers.find((h) => h.name === field.toLowerCase())?.value;
   }
 
-  public getHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {};
-    this._headers.forEach((val, key) => {
-      headers[key] = val;
-    });
-
-    return headers;
+  public getHeaders(): IResponseHeader[] {
+    return this._headers;
   }
 
   public status(code: number): this {
@@ -331,7 +354,11 @@ export default class Response implements IResponse {
   }
 
   public json(body: any) {
-    if (!this.get('Content-Type')) this.set('Content-Type', CONTENT_TYPE.JSON);
+    if (!this.get('Content-Type')) this.type(CONTENT_TYPE.JSON);
+    // this._headers.push({
+    //   name: 'content-type',
+    //   value: 'application/json;charset=utf-8',
+    // });
     this.end(body && JSON.stringify(body));
   }
 
@@ -592,7 +619,7 @@ export default class Response implements IResponse {
       opts.path = '/';
     }
 
-    this._cookies.push(serialize(name, str, opts));
+    this.set('set-cookie', serialize(name, str, opts));
 
     return this;
   }
