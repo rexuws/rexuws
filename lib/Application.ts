@@ -251,42 +251,50 @@ export default class App
     return this;
   }
 
-  listen(
-    host: RecognizedString,
-    port: number,
-    cb?: (listenSocket: us_listen_socket) => void
-  ): void;
-  listen(port: number, cb?: (listenSocket: us_listen_socket) => void): void;
-  listen(
-    port: number,
-    options: ListenOptions,
-    cb?: (listenSocket: us_listen_socket | false) => void
-  ): void;
+  listen(host: RecognizedString, port: number, cb?: () => void): void;
+  listen(port: number, cb?: () => void): void;
+  listen(port: number, options: ListenOptions, cb?: () => void): void;
   public listen(...args: any[]): void {
     this.initUWS();
     this.initRoutes();
 
     const argsCt = [...args];
     const givenLength = argsCt.length;
+
     if (!this.#app) {
       throw new Error("Couldn't find uWS instance");
     }
 
-    if (
-      givenLength < 3 &&
-      argsCt[givenLength - 1].constructor.name !== 'Function'
-    ) {
-      argsCt[givenLength] = (token: us_listen_socket) => {
-        this.#token = token;
-        this.#logger.print!(
-          'Listening on',
-          args[0],
-          givenLength === 2 ? argsCt[1] : '',
-          '...'
-        );
-      };
+    if (givenLength > 3) throw new TypeError('Invalid listen arguments ');
+
+    if (givenLength === 3 && typeof argsCt[2] !== 'function')
+      throw new TypeError('Callback must be a function');
+
+    if (typeof argsCt[givenLength - 1] === 'function') {
+      const customCb = argsCt[givenLength - 1];
+
+      // Pass user-defined callback into setToken callback to make sure the callback will be called after
+      // the server successfully started
+      argsCt[givenLength - 1] = (token: us_listen_socket) =>
+        this.setToken(token, customCb);
+    } else {
+      // By default print out the success message
+      argsCt[givenLength] = (token: us_listen_socket) =>
+        this.setToken(token, () => {
+          this.#logger.print!(
+            'Listening on',
+            args[0],
+            givenLength === 2 ? argsCt[1] : '',
+            '...'
+          );
+        });
     }
-    (this.#app as any).listen(...argsCt);
+    this.#app.listen(...(argsCt as [any, any, any]));
+  }
+
+  private setToken(token: us_listen_socket, cb?: () => void) {
+    this.#token = token;
+    if (cb) cb();
   }
 
   private initUWS(): void {
