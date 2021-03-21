@@ -72,6 +72,8 @@ const CONTENT_TYPE = {
 };
 
 export default class Response implements IResponse {
+  [x: string]: unknown;
+
   public [NEXT]: NextFunction;
 
   public [FROM_APP]: TApplicationExposedMethods;

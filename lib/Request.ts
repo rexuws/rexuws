@@ -85,6 +85,8 @@ export interface IRequestOptions {
 }
 
 export default class Request implements IRequest {
+  [key: string]: unknown;
+
   /**
    * uWS Original req object
    */

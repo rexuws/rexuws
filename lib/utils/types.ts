@@ -69,7 +69,7 @@ export interface IResponseSendFileOption {
   lastModified?: string;
 }
 
-export interface IRequest {
+export interface IRequest extends Record<string | number | symbol, unknown> {
   /**
    * Check if the given `type(s)` is acceptable, returning
    * the best match when true, otherwise `undefined`, in which
@@ -245,7 +245,7 @@ export interface IRequest {
   originalUrl: string;
 }
 
-export interface IResponse {
+export interface IResponse extends Record<string | number | symbol, unknown> {
   /**
    * Set _Content-Type_ response header with `type` through `mime.lookup()`
    * when it does not contain "/", or set the Content-Type to `type` otherwise.
