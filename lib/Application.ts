@@ -626,11 +626,12 @@ export default class App
     return this;
   }
 
-  public close(): void {
+  public close(cb?: () => void): void {
     if (!this.#app) {
       throw new Error("uWS App hasn't been instanciated");
     }
     us_listen_socket_close(this.#token!);
-    this.#logger.print!('Thanks for using the app');
+    if (cb) cb();
+    else this.#logger.print!('Thanks for using the app');
   }
 }
