@@ -361,10 +361,11 @@ export default class App
         if (useDefaultParser) {
           if (typeof useDefaultParser === 'object') {
             if (useDefaultParser.multipartParser)
-              mergedMiddlewares.unshift(bodyParser);
+              mergedMiddlewares.unshift(multipartParser);
 
-            if (useDefaultParser.bodyParser)
+            if (useDefaultParser.bodyParser) {
               mergedMiddlewares.unshift(bodyParser);
+            }
           } else {
             mergedMiddlewares.unshift(multipartParser);
             mergedMiddlewares.unshift(bodyParser);
