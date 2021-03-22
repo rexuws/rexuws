@@ -275,26 +275,30 @@ export default class App
 
       // Pass user-defined callback into setToken callback to make sure the callback will be called after
       // the server successfully started
-      argsCt[givenLength - 1] = (token: us_listen_socket) =>
-        this.setToken(token, customCb);
+      argsCt[givenLength - 1] = this.setToken(customCb);
     } else {
       // By default print out the success message
-      argsCt[givenLength] = (token: us_listen_socket) =>
-        this.setToken(token, () => {
-          this.#logger.print!(
-            'Listening on',
-            args[0],
-            givenLength === 2 ? argsCt[1] : '',
-            '...'
-          );
-        });
+      argsCt[givenLength] = this.setToken(() => {
+        this.#logger.print!(
+          'Listening on',
+          args[0],
+          givenLength === 2 ? argsCt[1] : '',
+          '...'
+        );
+      });
     }
     this.#app.listen(...(argsCt as [any, any, any]));
   }
 
-  private setToken(token: us_listen_socket, cb?: () => void) {
-    this.#token = token;
-    if (cb) cb();
+  /**
+   * Save server token to perform graceful shutdown by `app.close()`
+   */
+  private setToken(cb?: () => void): (token: us_listen_socket) => void {
+    return (token) => {
+      if (!token) throw new Error('Something went wrong with the server');
+      this.#token = token;
+      if (cb) cb();
+    };
   }
 
   private initUWS(): void {
@@ -322,7 +326,7 @@ export default class App
     // Push default ErrorMiddleware
     this.#errorMiddlewares.push(
       errorMiddleware({
-        logMethod: 'error',
+        logMethod: 'trace',
         logger: this.#logger,
         preferJSON: !!this.#appOptions.preferJSON,
       })
@@ -630,7 +634,9 @@ export default class App
     if (!this.#app) {
       throw new Error("uWS App hasn't been instanciated");
     }
+
     us_listen_socket_close(this.#token!);
+
     if (cb) cb();
     else this.#logger.print!('Thanks for using the app');
   }
