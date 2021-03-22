@@ -34,7 +34,7 @@ export const getAppInstance = (
 ): Application | undefined => {
   if (id) return reXInstances.get(id)?.app;
 
-  return reXInstances.values().next().value;
+  return reXInstances.values().next().value?.app;
 };
 
 /**
@@ -44,7 +44,7 @@ export const getAppInstance = (
 export const getLoggerInstance = (id?: string | number): Logger | undefined => {
   if (id) return reXInstances.get(id)?.logger;
 
-  return reXInstances.values().next().value.logger;
+  return reXInstances.values().next().value?.logger;
 };
 
 export default (options?: TReXAppOptions): Application => {
