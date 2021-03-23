@@ -85,6 +85,8 @@ export interface IRequestOptions {
 }
 
 export default class Request implements IRequest {
+  [key: string]: unknown;
+
   /**
    * uWS Original req object
    */
@@ -106,7 +108,7 @@ export default class Request implements IRequest {
   private [FOR_EACH]: any;
 
   private parametersMap?: ParametersMap;
-  
+
   public accepted: string[] = [];
 
   private _method?: HttpMethod;
@@ -170,7 +172,6 @@ export default class Request implements IRequest {
 
       if (cookieParser) {
         this._hasCookieParser = true;
-        this._cookies = {};
       }
 
       this._baseUrl = baseUrl;
@@ -275,7 +276,7 @@ export default class Request implements IRequest {
     if (this._hasCookieParser) {
       if (this._cookies) return this._cookies;
 
-      // Parse cookie
+      // Get from headers
       const { cookie } = this.headers;
 
       if (!cookie) {
@@ -287,6 +288,7 @@ export default class Request implements IRequest {
         [key: string]: any;
       } = {};
 
+      // Parse cookies
       const parts = cookie.split(';');
 
       for (let i = 0; i < parts.length; i++) {

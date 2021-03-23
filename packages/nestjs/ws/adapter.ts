@@ -1,16 +1,18 @@
-import {
-  INestApplicationContext,
-  Logger,
-} from "@nestjs/common";
+/* eslint-disable class-methods-use-this */
+/* eslint-disable no-param-reassign */
+/* eslint-disable import/no-extraneous-dependencies */
+import { INestApplicationContext, Logger } from '@nestjs/common';
 import {
   MessageMappingProperties,
   AbstractWsAdapter,
-} from "@nestjs/websockets";
-import { Observable, fromEvent, EMPTY } from "rxjs";
-import { mergeMap, filter, share, first, takeUntil } from "rxjs/operators";
-import ReX from "rexuws";
-import { WebSocket } from "uWebSockets.js";
-import Application from "rexuws/build/lib/Application";
+} from '@nestjs/websockets';
+import { Observable, fromEvent, EMPTY } from 'rxjs';
+import { mergeMap, filter, share, first, takeUntil } from 'rxjs/operators';
+import ReX from 'rexuws';
+import { WebSocket } from 'uWebSockets.js';
+import Application from 'rexuws/build/lib/Application';
+import { EventEmitter } from 'events';
+import { HttpAdapterHost } from '@nestjs/core';
 import {
   IRexWSAdapterCreateArgs,
   IRexWSMessage as IReXWSMessage,
@@ -18,21 +20,19 @@ import {
   IReXWSEmitMessage,
   WithEmitter,
   TReXAllowedUWSBehaviors,
-} from "./types";
-import { EventEmitter } from "events";
-import { HttpAdapterHost } from "@nestjs/core";
-import ReXHttpAdapter from "../http/adapter";
+} from './types';
+import ReXHttpAdapter from '../http/adapter';
 
 export default class ReXWsAdapter extends AbstractWsAdapter {
   #instance: Application;
 
-  #namespace = "/";
+  #namespace = '/';
 
   #port: number | undefined;
 
   #uWSBehaviors: TReXAllowedUWSBehaviors = {};
 
-  private logger = new Logger("ReXUWS-WSAdapter");
+  private logger = new Logger('ReXUWS-WSAdapter');
 
   constructor(
     private app: INestApplicationContext,
@@ -45,7 +45,7 @@ export default class ReXWsAdapter extends AbstractWsAdapter {
     if (adapter && adapter instanceof ReXHttpAdapter) {
       this.#instance = adapter.getInstance();
     } else {
-      throw new TypeError("Missing ReX Application instance");
+      throw new TypeError('Missing ReX Application instance');
     }
 
     if (opts) {
@@ -134,10 +134,10 @@ export default class ReXWsAdapter extends AbstractWsAdapter {
           callback(ws);
         },
         close: (ws: WebSocket, code, msg) => {
-          (ws as WithEmitter<WebSocket>).emitter.emit("disconnect", msg);
+          (ws as WithEmitter<WebSocket>).emitter.emit('disconnect', msg);
         },
         message: (ws: WebSocket, msg, isBinary) => {
-          (ws as WithEmitter<WebSocket>).emitter.emit("message", {
+          (ws as WithEmitter<WebSocket>).emitter.emit('message', {
             msg,
             isBinary,
           });
@@ -151,12 +151,12 @@ export default class ReXWsAdapter extends AbstractWsAdapter {
     handlers: MessageMappingProperties[],
     process: (data: any) => Observable<any>
   ) {
-    const close$ = fromEvent(client.emitter, "disconnect").pipe(
+    const close$ = fromEvent(client.emitter, 'disconnect').pipe(
       share(),
       first()
     );
 
-    fromEvent<IReXWSEmitMessage>(client.emitter, "message")
+    fromEvent<IReXWSEmitMessage>(client.emitter, 'message')
       .pipe(
         mergeMap((e) => this.bindMessageHandler(e, handlers, process)),
         filter((result) => result),
@@ -173,7 +173,7 @@ export default class ReXWsAdapter extends AbstractWsAdapter {
     const { msg } = message;
 
     const extractedMessage: IReXWSMessage<unknown> = JSON.parse(
-      Buffer.from(msg).toString("utf-8")
+      Buffer.from(msg).toString('utf-8')
     );
 
     // find handler
@@ -188,7 +188,7 @@ export default class ReXWsAdapter extends AbstractWsAdapter {
     client: WithEmitter<WebSocket>,
     cb: (...args: any[]) => void
   ) {
-    client.emitter.on("disconnect", cb);
+    client.emitter.on('disconnect', cb);
   }
 
   close() {

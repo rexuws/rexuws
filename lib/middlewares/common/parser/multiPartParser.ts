@@ -22,6 +22,10 @@ export interface IMultipartParserOptions {
   maxSize?: number;
 }
 
+export type TMultipartParsedResult<T = { [key: string]: unknown }> = {
+  [key: string]: Partial<uWS.MultipartField>;
+} & Partial<T>;
+
 export const multipartParser = (
   req: IRequest,
   _: IResponse,

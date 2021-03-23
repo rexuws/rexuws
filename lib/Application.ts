@@ -18,7 +18,6 @@ import {
   NextFunction,
   bodyParser,
   multipartParser,
-  IMultipartParserOptions,
   notFoundMiddleware,
   errorMiddleware,
 } from './middlewares';
@@ -66,10 +65,11 @@ export interface CoreApplicationOptions {
          */
         bodyParser?: boolean;
 
+        // TODO add some configurations over fileSize, route's path
         /**
          * Parse multipart/
          */
-        multipartParser?: IMultipartParserOptions;
+        multipartParser?: true /** IMultipartParserOptions */;
 
         /**
          * Add method to parse cookie from req.headers.cookie into getter method req.cookies()
@@ -85,7 +85,7 @@ export interface CoreApplicationOptions {
   /**
    * Set logging options
    */
-  logger?: ILogger;
+  logger: ILogger;
 
   /**
    * Attach abort handler to all router if forceAsync is true
@@ -106,7 +106,7 @@ export interface CoreApplicationOptions {
 export default class App
   extends AbstractRoutingParser<IRouteHandler, TDefaultRoutingFn>
   implements IUWSRouting, IUWSPublish {
-  #appOptions: CoreApplicationOptions = {};
+  #appOptions: CoreApplicationOptions;
 
   #logger: ILogger;
 
@@ -134,9 +134,7 @@ export default class App
 
   constructor(options: CoreApplicationOptions) {
     super();
-    this.#appOptions = options || {
-      useDefaultParser: true,
-    };
+    this.#appOptions = options;
 
     if (!this.#appOptions.useDefaultParser) {
       this.#appOptions.useDefaultParser = true;
@@ -147,13 +145,6 @@ export default class App
     this.#checkHasAsync = checkHasAsync(this.#logger);
   }
 
-  // eslint-disable-next-line class-methods-use-this
-  protected transform(args: unknown[]): [string, TMiddleware[]] {
-    const [path, ...middlewares] = args;
-
-    return [path as string, middlewares as TMiddleware[]];
-  }
-
   /**
    * @override
    * @param method
@@ -161,12 +152,8 @@ export default class App
    * @param middlewares
    * @param baseUrl
    */
-  protected add(
-    method: HttpMethod,
-    path: string,
-    middlewares: TMiddleware[],
-    baseUrl?: string
-  ): this {
+  protected add(method: HttpMethod, args: unknown[]): this {
+    const [path, ...middlewares] = args as [string, TMiddleware];
     const { path: cleanedPath, parametersMap, basePath } = extractParamsPath(
       path.startsWith('/') ? path : `/${path}`
     );
@@ -187,7 +174,7 @@ export default class App
       parametersMap,
       hasAsync: middlewares.some(this.#checkHasAsync),
       path: cleanedPath,
-      baseUrl,
+      // baseUrl,
     });
 
     this.#logger.info(
@@ -231,29 +218,27 @@ export default class App
 
       if (router instanceof DefaultRouter) {
         // check for PrefixRouter ins BaseRouter
-        const { prefixRouter } = router;
+        const prefixRouter = router.getPrefixRouter();
 
         if (prefixRouter && prefixRouter instanceof PrefixRouter)
           prefixRouter
             .getRouteHandlers()
             .forEach(({ method, middlewares, path }) => {
-              this.add(
-                method,
+              this.add(method, [
                 `${pathOrMiddleware}/${path}`,
                 middlewares,
-                pathOrMiddleware
-              );
+                pathOrMiddleware,
+              ]);
             });
       }
 
       const handlers = router.getRouteHandlers();
       handlers.forEach(({ method, middlewares, path }) => {
-        this.add(
-          method,
+        this.add(method, [
           `${pathOrMiddleware}/${path}`,
           middlewares,
-          pathOrMiddleware
-        );
+          pathOrMiddleware,
+        ]);
       });
 
       return this;
@@ -266,42 +251,54 @@ export default class App
     return this;
   }
 
-  listen(
-    host: RecognizedString,
-    port: number,
-    cb?: (listenSocket: us_listen_socket) => void
-  ): void;
-  listen(port: number, cb?: (listenSocket: us_listen_socket) => void): void;
-  listen(
-    port: number,
-    options: ListenOptions,
-    cb?: (listenSocket: us_listen_socket | false) => void
-  ): void;
+  listen(host: RecognizedString, port: number, cb?: () => void): void;
+  listen(port: number, cb?: () => void): void;
+  listen(port: number, options: ListenOptions, cb?: () => void): void;
   public listen(...args: any[]): void {
     this.initUWS();
     this.initRoutes();
 
     const argsCt = [...args];
     const givenLength = argsCt.length;
+
     if (!this.#app) {
       throw new Error("Couldn't find uWS instance");
     }
 
-    if (
-      givenLength < 3 &&
-      argsCt[givenLength - 1].constructor.name !== 'Function'
-    ) {
-      argsCt[givenLength] = (token: us_listen_socket) => {
-        this.#token = token;
+    if (givenLength > 3) throw new TypeError('Invalid listen arguments ');
+
+    if (givenLength === 3 && typeof argsCt[2] !== 'function')
+      throw new TypeError('Callback must be a function');
+
+    if (typeof argsCt[givenLength - 1] === 'function') {
+      const customCb = argsCt[givenLength - 1];
+
+      // Pass user-defined callback into setToken callback to make sure the callback will be called after
+      // the server successfully started
+      argsCt[givenLength - 1] = this.setToken(customCb);
+    } else {
+      // By default print out the success message
+      argsCt[givenLength] = this.setToken(() => {
         this.#logger.print!(
           'Listening on',
           args[0],
           givenLength === 2 ? argsCt[1] : '',
           '...'
         );
-      };
+      });
     }
-    (this.#app as any).listen(...argsCt);
+    this.#app.listen(...(argsCt as [any, any, any]));
+  }
+
+  /**
+   * Save server token to perform graceful shutdown by `app.close()`
+   */
+  private setToken(cb?: () => void): (token: us_listen_socket) => void {
+    return (token) => {
+      if (!token) throw new Error('Something went wrong with the server');
+      this.#token = token;
+      if (cb) cb();
+    };
   }
 
   private initUWS(): void {
@@ -329,7 +326,7 @@ export default class App
     // Push default ErrorMiddleware
     this.#errorMiddlewares.push(
       errorMiddleware({
-        logMethod: 'error',
+        logMethod: 'trace',
         logger: this.#logger,
         preferJSON: !!this.#appOptions.preferJSON,
       })
@@ -364,10 +361,11 @@ export default class App
         if (useDefaultParser) {
           if (typeof useDefaultParser === 'object') {
             if (useDefaultParser.multipartParser)
-              mergedMiddlewares.unshift(bodyParser);
+              mergedMiddlewares.unshift(multipartParser);
 
-            if (useDefaultParser.bodyParser)
+            if (useDefaultParser.bodyParser) {
               mergedMiddlewares.unshift(bodyParser);
+            }
           } else {
             mergedMiddlewares.unshift(multipartParser);
             mergedMiddlewares.unshift(bodyParser);
@@ -393,7 +391,7 @@ export default class App
           };
 
           readBody(res.originalRes, (raw) => {
-            req.raw = raw;
+            req.raw = raw.byteLength === 0 ? undefined : raw;
             mergedMiddlewares[0](
               req,
               res,
@@ -633,11 +631,14 @@ export default class App
     return this;
   }
 
-  public close(): void {
+  public close(cb?: () => void): void {
     if (!this.#app) {
       throw new Error("uWS App hasn't been instanciated");
     }
+
     us_listen_socket_close(this.#token!);
-    this.#logger.print!('Thanks for using the app');
+
+    if (cb) cb();
+    else this.#logger.print!('Thanks for using the app');
   }
 }

@@ -1,4 +1,4 @@
-import { INestApplication } from "@nestjs/common";
+import { INestApplication } from '@nestjs/common';
 
 export interface IReXNestApplication extends INestApplication {
   setRexViewEngine(

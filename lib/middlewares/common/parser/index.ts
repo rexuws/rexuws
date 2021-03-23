@@ -1,2 +1,2 @@
-export * from './bodyParser';
+export { bodyParser } from './bodyParser';
 export * from './multiPartParser';

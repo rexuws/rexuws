@@ -69,7 +69,7 @@ export interface IResponseSendFileOption {
   lastModified?: string;
 }
 
-export interface IRequest {
+export interface IRequest extends Record<string | number | symbol, unknown> {
   /**
    * Check if the given `type(s)` is acceptable, returning
    * the best match when true, otherwise `undefined`, in which
@@ -203,15 +203,12 @@ export interface IRequest {
   hostname: string | undefined;
 
   /**
-   * Return the remote address, or when
-   * "trust proxy" is `true` return
-   * the upstream addr.
+   * Return the remote address
    */
   ip: string;
 
   /**
-   * When "trust proxy" is `true`, parse
-   * the "X-Forwarded-For" ip address list.
+   * Parse the "X-Forwarded-For" ip address list.
    *
    * For example if the value were "client, proxy1, proxy2"
    * you would receive the array `["client", "proxy1", "proxy2"]`
@@ -245,7 +242,7 @@ export interface IRequest {
   originalUrl: string;
 }
 
-export interface IResponse {
+export interface IResponse extends Record<string | number | symbol, unknown> {
   /**
    * Set _Content-Type_ response header with `type` through `mime.lookup()`
    * when it does not contain "/", or set the Content-Type to `type` otherwise.
@@ -283,16 +280,6 @@ export interface IResponse {
 
   /**
    * Transfer the file at the given `path` as an attachment.
-   *
-   * Optionally providing an alternate attachment `filename`,
-   * and optional callback `fn(err)`. The callback is invoked
-   * when the data transfer is complete, or when an error has
-   * ocurred. Be sure to check `res.headersSent` if you plan to respond.
-   *
-   * The optional options argument passes through to the underlying
-   * res.sendFile() call, and takes the exact same parameters.
-   *
-   * This method uses `res.sendfile()`.
    */
   download(path: string): void;
   download(path: string, filename: string): void;
@@ -316,10 +303,10 @@ export interface IResponse {
    *
    * Aliased as `res.header()`.
    */
-  set(field: any): this;
+  set(field: Record<string, string | string[]>): this;
   set(field: string, value?: string | string[]): this;
 
-  header(field: any): this;
+  header(field: Record<string, string | string[]>): this;
   header(field: string, value?: string | string[]): this;
 
   /**

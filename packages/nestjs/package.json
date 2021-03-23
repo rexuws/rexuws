@@ -1,8 +1,9 @@
 {
   "name": "@rexuws/nestjs",
-  "version": "0.0.1",
+  "version": "0.0.2-b",
   "description": "ReXUWS Http Adapter and WS Adapter for NestJS",
-  "main": "index.js",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rexuws/rexuws.git"
@@ -44,5 +45,7 @@
     "@nestjs/websockets": "^7.6.13",
     "@types/cors": "^2.8.9"
   },
-  "files": ["build/**/*"]
+  "files": [
+    "build/**/*"
+  ]
 }

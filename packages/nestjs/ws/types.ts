@@ -1,9 +1,10 @@
-import { WebSocketBehavior } from "uWebSockets.js";
-import { EventEmitter } from "events";
+/* eslint-disable import/no-extraneous-dependencies */
+import { WebSocketBehavior } from 'uWebSockets.js';
+import { EventEmitter } from 'events';
 
 export type TReXAllowedUWSBehaviors = Omit<
   WebSocketBehavior,
-  "open" | "message" | "close"
+  'open' | 'message' | 'close'
 >;
 
 export interface IRexWSAdapterCreateArgs extends TReXAllowedUWSBehaviors {
