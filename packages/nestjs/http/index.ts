@@ -1,2 +1,2 @@
-export { default as ReXNestHttpAdapter } from "./adapter";
-export * from "./types";
+export { default as ReXNestHttpAdapter } from './adapter';
+export * from './types';

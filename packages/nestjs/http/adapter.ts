@@ -1,8 +1,9 @@
+/* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/ban-types */
-import { RequestMethod, INestApplication } from '@nestjs/common';
+import { RequestMethod } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { NestApplicationOptions } from '@nestjs/common/interfaces/nest-application-options.interface';
-import { isNil, isObject } from '@nestjs/common/utils/shared.utils';
+import { isNil } from '@nestjs/common/utils/shared.utils';
 import { AbstractHttpAdapter } from '@nestjs/core/adapters/http-adapter';
 import { RouterMethodFactory } from '@nestjs/core/helpers/router-method-factory';
 import * as cors from 'cors';
@@ -10,6 +11,11 @@ import rex, { middlewares, getLoggerInstance } from 'rexuws';
 import { IServeStaticOptions } from 'rexuws/build/lib/middlewares';
 import { IRequest, IResponse } from 'rexuws/build/lib/utils/types';
 import Application from 'rexuws/build/lib/Application';
+
+const defaultMdw =
+  'async (req, res, next) => { try { await targetCallback(req, res, next); } catch (e) { const host = new execution_context_host_1.ExecutionContextHost([req, res, next]); exceptionsHandler.next(e, host); } }';
+const defaultErr =
+  'async (err, req, res, next) => { try { await targetCallback(err, req, res, next); } catch (e) { const host = new execution_context_host_1.ExecutionContextHost([req, res, next]); exceptionsHandler.next(e, host); } }';
 
 export default class ReXHttpAdapter extends AbstractHttpAdapter {
   private readonly routerMethodFactory = new RouterMethodFactory();
@@ -118,7 +124,6 @@ export default class ReXHttpAdapter extends AbstractHttpAdapter {
   public createMiddlewareFactory(
     requestMethod: RequestMethod
   ): (path: string, callback: Function) => any {
-    console.log(this.routerMethodFactory);
     return this.routerMethodFactory
       .get(this.instance, requestMethod)
       .bind(this.instance);
@@ -165,6 +170,3 @@ export default class ReXHttpAdapter extends AbstractHttpAdapter {
     this.instance.use(...args);
   }
 }
-
-const defaultMdw = `async (req, res, next) => { try { await targetCallback(req, res, next); } catch (e) { const host = new execution_context_host_1.ExecutionContextHost([req, res, next]); exceptionsHandler.next(e, host); } }`;
-const defaultErr = `async (err, req, res, next) => { try { await targetCallback(err, req, res, next); } catch (e) { const host = new execution_context_host_1.ExecutionContextHost([req, res, next]); exceptionsHandler.next(e, host); } }`;
