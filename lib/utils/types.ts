@@ -203,15 +203,12 @@ export interface IRequest extends Record<string | number | symbol, unknown> {
   hostname: string | undefined;
 
   /**
-   * Return the remote address, or when
-   * "trust proxy" is `true` return
-   * the upstream addr.
+   * Return the remote address
    */
   ip: string;
 
   /**
-   * When "trust proxy" is `true`, parse
-   * the "X-Forwarded-For" ip address list.
+   * Parse the "X-Forwarded-For" ip address list.
    *
    * For example if the value were "client, proxy1, proxy2"
    * you would receive the array `["client", "proxy1", "proxy2"]`
@@ -283,16 +280,6 @@ export interface IResponse extends Record<string | number | symbol, unknown> {
 
   /**
    * Transfer the file at the given `path` as an attachment.
-   *
-   * Optionally providing an alternate attachment `filename`,
-   * and optional callback `fn(err)`. The callback is invoked
-   * when the data transfer is complete, or when an error has
-   * ocurred. Be sure to check `res.headersSent` if you plan to respond.
-   *
-   * The optional options argument passes through to the underlying
-   * res.sendFile() call, and takes the exact same parameters.
-   *
-   * This method uses `res.sendfile()`.
    */
   download(path: string): void;
   download(path: string, filename: string): void;

@@ -18,7 +18,6 @@ import {
   NextFunction,
   bodyParser,
   multipartParser,
-  IMultipartParserOptions,
   notFoundMiddleware,
   errorMiddleware,
 } from './middlewares';
@@ -66,10 +65,11 @@ export interface CoreApplicationOptions {
          */
         bodyParser?: boolean;
 
+        // TODO add some configurations over fileSize, route's path
         /**
          * Parse multipart/
          */
-        multipartParser?: IMultipartParserOptions;
+        multipartParser?: true /** IMultipartParserOptions */;
 
         /**
          * Add method to parse cookie from req.headers.cookie into getter method req.cookies()
