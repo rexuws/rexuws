@@ -63,6 +63,7 @@ export default (options?: TReXAppOptions): Application => {
   const {
     name = reXInstances.size,
     logging = defaultLoggerSetting,
+    useDefaultParser = true,
     ...appOptions
   } = options;
 
@@ -75,8 +76,9 @@ export default (options?: TReXAppOptions): Application => {
   );
 
   const app = new Application({
-    ...appOptions,
     logger,
+    useDefaultParser,
+    ...appOptions,
   });
 
   reXInstances.set(name, {
