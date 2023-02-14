@@ -267,6 +267,7 @@ describe('Application HttpRouting', () => {
             'accept-encoding': 'gzip, deflate',
             connection: 'close',
             host: '127.0.0.1:3000',
+            'user-agent': 'node-superagent/3.8.3',
           },
         });
         done();
