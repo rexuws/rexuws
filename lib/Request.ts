@@ -85,14 +85,14 @@ export interface IRequestOptions {
 }
 
 export default class Request implements IRequest {
-  [key: string]: unknown;
+  [key: string | number | symbol]: unknown;
 
   /**
    * uWS Original req object
    */
   public originalReq: HttpRequest;
 
-  public [FROM_RES]: TResponseExposedMethods;
+  public [FROM_RES]!: TResponseExposedMethods;
 
   // Extended method from uWS
   private [GET_HEADER]: any;

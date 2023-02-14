@@ -206,7 +206,7 @@ export default class App
     middleware: (req: Request, res: Response, next: NextFunction) => void
   ): this;
   use(middleware: TMiddlewareErrorHandler): this;
-  use(pathOrMiddleware: any, router?: IGetRouteHandlers): this {
+  use(pathOrMiddleware: string | ((...args:any[])=>any), router?: IGetRouteHandlers): this {
     if (typeof pathOrMiddleware === 'string') {
       if (!router) throw new TypeError('app.use(path, router) missing Router');
 
@@ -244,7 +244,7 @@ export default class App
       return this;
     }
 
-    if (getParamNames(pathOrMiddleware as any).length === 4) {
+    if (getParamNames(pathOrMiddleware)?.length === 4) {
       this.#errorMiddlewares.push(pathOrMiddleware as TMiddlewareErrorHandler);
     } else this.#globalMiddlewares.push(pathOrMiddleware as TMiddleware);
 
@@ -528,7 +528,7 @@ export default class App
           const html = cacheView(options);
           return callback(null, html);
         } catch (err) {
-          return callback(err);
+          return callback(err as Error);
         }
       }
 
@@ -539,7 +539,7 @@ export default class App
         this.#compiledViewCaches[name] = compiled;
         return callback(null, compiled(options));
       } catch (err) {
-        return callback(err);
+        return callback(err as Error);
       }
     }
 
