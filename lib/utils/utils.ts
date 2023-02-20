@@ -29,11 +29,11 @@ const ARGUMENT_NAMES = /([^\s,]+)/g;
 export const getParamNames = (func: (...args: any) => any) => {
   const fnStr = func.toString().replace(STRIP_COMMENTS, '');
 
-  let result = fnStr
+  const result = fnStr
     .slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')'))
     .match(ARGUMENT_NAMES);
 
-  if (result === null) result = [];
+  if (result === null) return [];
   return result;
 };
 

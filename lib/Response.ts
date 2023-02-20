@@ -72,11 +72,11 @@ const CONTENT_TYPE = {
 };
 
 export default class Response implements IResponse {
-  [x: string]: unknown;
+  [x: string | number | symbol]: unknown;
 
-  public [NEXT]: NextFunction;
+  public [NEXT]!: NextFunction;
 
-  public [FROM_APP]: TApplicationExposedMethods;
+  public [FROM_APP]!: TApplicationExposedMethods;
 
   private _statusCode?: string;
 
@@ -112,7 +112,7 @@ export default class Response implements IResponse {
 
   public [CORK]: (cb: () => void) => void;
 
-  public [FROM_REQ]: TRequestExposedMethods;
+  public [FROM_REQ]!: TRequestExposedMethods;
 
   public getHeader: (field: string) => string | undefined;
 
@@ -130,7 +130,7 @@ export default class Response implements IResponse {
 
   public type: (type: string) => this;
 
-  private [HAS_ASYNC]: boolean;
+  private [HAS_ASYNC]!: boolean;
 
   private debug: ILogger;
 
